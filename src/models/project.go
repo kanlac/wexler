@@ -5,6 +5,11 @@ import (
 	"path/filepath"
 )
 
+const (
+	DefaultWexlerSource    = "~/.wexler"
+	DefaultStorageFileName = "wexler.db"
+)
+
 // ProjectConfig represents the main project configuration (wexler.yaml)
 type ProjectConfig struct {
 	Name        string            `yaml:"name" json:"name"`
@@ -17,11 +22,10 @@ type ProjectConfig struct {
 // DefaultProjectConfig returns a project configuration with sensible defaults
 func DefaultProjectConfig(name string) *ProjectConfig {
 	return &ProjectConfig{
-		Name:        name,
-		Version:     "1.0.0",
-		SourcePath:  "source",
-		StoragePath: ".wexler",
-		Tools:       map[string]string{},
+		Name:       name,
+		Version:    "1.0.0",
+		SourcePath: DefaultWexlerSource,
+		Tools:      map[string]string{},
 	}
 }
 
@@ -30,23 +34,23 @@ func (p *ProjectConfig) Validate() error {
 	if p == nil {
 		return fmt.Errorf("project config is nil")
 	}
-	
+
 	if p.Name == "" {
 		return fmt.Errorf("project name cannot be empty")
 	}
-	
+
 	if p.Version == "" {
 		return fmt.Errorf("project version cannot be empty")
 	}
-	
+
 	if p.SourcePath == "" {
 		return fmt.Errorf("source path cannot be empty")
 	}
-	
+
 	if p.StoragePath == "" {
 		return fmt.Errorf("storage path cannot be empty")
 	}
-	
+
 	return nil
 }
 
@@ -71,12 +75,12 @@ func (p *ProjectConfig) IsToolEnabled(toolName string) bool {
 	if p.Tools == nil {
 		return false
 	}
-	
+
 	status, exists := p.Tools[toolName]
 	if !exists {
 		return false
 	}
-	
+
 	return status == "enabled"
 }
 

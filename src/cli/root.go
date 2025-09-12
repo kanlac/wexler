@@ -5,12 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
+	"wexler/src/apply"
 	"wexler/src/config"
 	"wexler/src/source"
 	"wexler/src/storage"
 	"wexler/src/tools"
-	"wexler/src/apply"
+
+	"github.com/spf13/cobra"
 )
 
 var (

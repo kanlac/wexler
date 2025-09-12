@@ -5,8 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"wexler/src/models"
+
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -22,7 +23,7 @@ func newInitCmd() *cobra.Command {
 		Long: `Initialize Wexler configuration management in the current directory.
 
 Creates a wexler.yaml configuration file and sets up the basic project structure
-including source directory for AI configurations and storage directory for MCP settings.`,
+including source directory for AI configurations and MCP settings.`,
 		Example: `  # Initialize with default settings
   wexler init
 
@@ -30,12 +31,12 @@ including source directory for AI configurations and storage directory for MCP s
   wexler init my-project
 
   # Initialize with custom source directory
-  wexler init --source=./ai-configs`,
+  wexler init --source=/usr/ai-configs`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: runInit,
 	}
 
-	cmd.Flags().StringVar(&initSourcePath, "source", "source", "source directory for AI configurations")
+	cmd.Flags().StringVar(&initSourcePath, "source", models.DefaultWexlerSource, "source directory for AI configurations")
 	cmd.Flags().StringVar(&initName, "name", "", "project name (default: directory name)")
 	cmd.Flags().StringVar(&initVersion, "version", "1.0.0", "project version")
 
@@ -145,7 +146,6 @@ Focus on:
 	fmt.Printf("✅ Wexler initialized successfully!\n\n")
 	fmt.Printf("Project: %s (v%s)\n", projectName, initVersion)
 	fmt.Printf("Source directory: %s\n", initSourcePath)
-	fmt.Printf("Storage directory: %s\n", config.StoragePath)
 	fmt.Printf("\n")
 	fmt.Printf("Next steps:\n")
 	fmt.Printf("  1. Edit %s/memory.mdc with your AI instructions\n", initSourcePath)
