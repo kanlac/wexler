@@ -65,7 +65,7 @@ func runList(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(w, "PROJECT CONFIGURATION\n")
 		fmt.Fprintf(w, "Name:\t%s\n", projectConfig.Name)
 		fmt.Fprintf(w, "Version:\t%s\n", projectConfig.Version)
-		fmt.Fprintf(w, "Source Path:\t%s\n", projectConfig.SourcePath)
+		fmt.Fprintf(w, "Source:\t%s\n", projectConfig.SourcePath)
 		fmt.Fprintf(w, "\n")
 	}
 
@@ -127,7 +127,7 @@ func runList(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(w, "----\t------\t-------------\n")
 		for toolName, status := range projectConfig.Tools {
 			configStatus := "not applied"
-			
+
 			// Check if tool has been configured
 			switch toolName {
 			case "claude":
@@ -139,7 +139,7 @@ func runList(cmd *cobra.Command, args []string) error {
 					configStatus = "configured"
 				}
 			}
-			
+
 			fmt.Fprintf(w, "%s\t%s\t%s\n", toolName, status, configStatus)
 		}
 		fmt.Fprintf(w, "\n")
@@ -157,7 +157,7 @@ func runList(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		fmt.Printf("Summary: %d enabled tool(s), project '%s' v%s\n", 
+		fmt.Printf("Summary: %d enabled tool(s), project '%s' v%s\n",
 			enabledTools, projectConfig.Name, projectConfig.Version)
 	}
 

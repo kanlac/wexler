@@ -216,11 +216,8 @@ func (tc *ToolConfig) Clone() *ToolConfig {
 	// Clone memory config
 	if tc.Memory != nil {
 		clone.Memory = &MemoryConfig{
-			Content:  tc.Memory.Content,
-			Sections: make(map[string]string),
-		}
-		for name, content := range tc.Memory.Sections {
-			clone.Memory.Sections[name] = content
+			Content:      tc.Memory.Content,
+			WexlerMemory: tc.Memory.WexlerMemory,
 		}
 	}
 	

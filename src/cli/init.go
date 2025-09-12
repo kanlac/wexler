@@ -111,13 +111,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Create sample memory.mdc file
 	memoryPath := filepath.Join(sourcePath, "memory.mdc")
 	if _, err := os.Stat(memoryPath); os.IsNotExist(err) {
-		sampleMemory := `# Workflow
+		sampleMemory := `# WEXLER
+<--- Main memory of all coding agents. Managed by wexler. DO NOT EDIT outside our wexler source directory. --->
+
+## Workflow
 Prefer running single tests for performance.
 
-# Code Style
+## Code Style
 Use Go conventions and direct framework usage.
 
-# Project Context
+## Project Context
 This is the project context and instructions for AI assistants.`
 
 		if err := os.WriteFile(memoryPath, []byte(sampleMemory), 0644); err != nil {

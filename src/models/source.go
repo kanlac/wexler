@@ -12,10 +12,10 @@ type SourceConfig struct {
 }
 
 // MemoryConfig represents memory configuration parsed from memory.mdc
-// Memory files use section-based parsing with markdown headers
+// Only the WEXLER section content is extracted and used
 type MemoryConfig struct {
-	Sections map[string]string `yaml:"sections" json:"sections"` // section name -> content
-	Content  string            `yaml:"content" json:"content"`   // raw file content
+	Content      string `yaml:"content" json:"content"`             // raw file content
+	WexlerMemory string `yaml:"wexler_memory" json:"wexler_memory"` // WEXLER section content only
 }
 
 // SubagentConfig represents subagent configuration from subagent/*.mdc files
@@ -36,8 +36,8 @@ func NewSourceConfig() *SourceConfig {
 // NewMemoryConfig creates a new empty memory configuration
 func NewMemoryConfig() *MemoryConfig {
 	return &MemoryConfig{
-		Sections: make(map[string]string),
-		Content:  "",
+		Content:      "",
+		WexlerMemory: "",
 	}
 }
 
@@ -49,95 +49,53 @@ func NewSubagentConfig(name, content string) *SubagentConfig {
 	}
 }
 
-// ParseMemoryContent parses markdown content into sections
-// Sections are identified by markdown headers (# Header Name)
+// ParseMemoryContent parses markdown content and extracts only the WEXLER section
 func (m *MemoryConfig) ParseMemoryContent(content string) error {
 	m.Content = content
-	m.Sections = make(map[string]string)
 	
 	if strings.TrimSpace(content) == "" {
+		m.WexlerMemory = ""
 		return nil // Empty file is valid
 	}
 	
+	// Parse content and extract WEXLER section (first one wins)
 	lines := strings.Split(content, "\n")
 	var currentSection string
 	var currentContent []string
+	var wexlerContent string
+	var foundWexler bool
 	
 	for _, line := range lines {
 		// Check for markdown header
 		if strings.HasPrefix(line, "# ") {
-			// Save previous section if exists
-			if currentSection != "" {
-				m.Sections[currentSection] = strings.Join(currentContent, "\n")
+			// Save WEXLER section if we found it and haven't saved one yet
+			if currentSection == "WEXLER" && !foundWexler {
+				wexlerContent = strings.Join(currentContent, "\n")
+				foundWexler = true
 			}
 			
 			// Start new section
 			currentSection = strings.TrimPrefix(line, "# ")
+			currentSection = strings.TrimSpace(currentSection)
 			currentContent = []string{}
 		} else if currentSection != "" {
 			// Add line to current section
 			currentContent = append(currentContent, line)
 		}
-		// Lines before any section header are ignored
 	}
 	
-	// Save final section
-	if currentSection != "" {
-		m.Sections[currentSection] = strings.Join(currentContent, "\n")
+	// Save final WEXLER section if it was the last one and we haven't found one yet
+	if currentSection == "WEXLER" && !foundWexler {
+		wexlerContent = strings.Join(currentContent, "\n")
 	}
 	
+	m.WexlerMemory = strings.TrimSpace(wexlerContent)
 	return nil
 }
 
-// GetSection returns the content of a specific section
-func (m *MemoryConfig) GetSection(sectionName string) (string, bool) {
-	if m.Sections == nil {
-		return "", false
-	}
-	content, exists := m.Sections[sectionName]
-	return strings.TrimSpace(content), exists
-}
-
-// SetSection sets the content of a specific section
-func (m *MemoryConfig) SetSection(sectionName, content string) {
-	if m.Sections == nil {
-		m.Sections = make(map[string]string)
-	}
-	m.Sections[sectionName] = content
-}
-
-// RemoveSection removes a section from the memory configuration
-func (m *MemoryConfig) RemoveSection(sectionName string) {
-	if m.Sections != nil {
-		delete(m.Sections, sectionName)
-	}
-}
-
-// ListSections returns all section names
-func (m *MemoryConfig) ListSections() []string {
-	if m.Sections == nil {
-		return []string{}
-	}
-	
-	sections := make([]string, 0, len(m.Sections))
-	for sectionName := range m.Sections {
-		sections = append(sections, sectionName)
-	}
-	return sections
-}
-
-// ToMarkdown reconstructs the markdown content from sections
-func (m *MemoryConfig) ToMarkdown() string {
-	if len(m.Sections) == 0 {
-		return m.Content // Return original if no sections parsed
-	}
-	
-	var parts []string
-	for sectionName, content := range m.Sections {
-		parts = append(parts, fmt.Sprintf("# %s\n%s", sectionName, content))
-	}
-	
-	return strings.Join(parts, "\n\n")
+// GetWexlerMemory returns the WEXLER section content
+func (m *MemoryConfig) GetWexlerMemory() string {
+	return m.WexlerMemory
 }
 
 // Validate checks if the memory configuration is valid
@@ -234,11 +192,8 @@ func (s *SourceConfig) Clone() *SourceConfig {
 	// Clone memory config
 	if s.Memory != nil {
 		clone.Memory = &MemoryConfig{
-			Content:  s.Memory.Content,
-			Sections: make(map[string]string),
-		}
-		for name, content := range s.Memory.Sections {
-			clone.Memory.Sections[name] = content
+			Content:      s.Memory.Content,
+			WexlerMemory: s.Memory.WexlerMemory,
 		}
 	}
 	
