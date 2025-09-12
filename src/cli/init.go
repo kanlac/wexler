@@ -73,10 +73,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Create project configuration
 	config := &models.ProjectConfig{
-		Name:        projectName,
-		Version:     initVersion,
-		SourcePath:  initSourcePath,
-		StoragePath: ".wexler",
+		Name:       projectName,
+		Version:    initVersion,
+		SourcePath: initSourcePath,
 		Tools: map[string]string{
 			"claude": "enabled",
 			"cursor": "enabled",
@@ -93,8 +92,12 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save project configuration: %w", err)
 	}
 
-	// Create source directory structure
-	sourcePath := config.GetAbsoluteSourcePath(projectPath)
+	// Create global wexler source directory structure
+	sourcePath, err := config.GetAbsoluteSourcePath()
+	if err != nil {
+		return fmt.Errorf("failed to resolve source path: %w", err)
+	}
+	
 	if err := os.MkdirAll(sourcePath, 0755); err != nil {
 		return fmt.Errorf("failed to create source directory: %w", err)
 	}
@@ -103,12 +106,6 @@ func runInit(cmd *cobra.Command, args []string) error {
 	subagentPath := filepath.Join(sourcePath, "subagent")
 	if err := os.MkdirAll(subagentPath, 0755); err != nil {
 		return fmt.Errorf("failed to create subagent directory: %w", err)
-	}
-
-	// Create storage directory
-	storagePath := config.GetAbsoluteStoragePath(projectPath)
-	if err := os.MkdirAll(storagePath, 0755); err != nil {
-		return fmt.Errorf("failed to create storage directory: %w", err)
 	}
 
 	// Create sample memory.mdc file
@@ -146,10 +143,11 @@ Focus on:
 	fmt.Printf("✅ Wexler initialized successfully!\n\n")
 	fmt.Printf("Project: %s (v%s)\n", projectName, initVersion)
 	fmt.Printf("Source directory: %s\n", initSourcePath)
+	fmt.Printf("Actual source path: %s\n", sourcePath)
 	fmt.Printf("\n")
 	fmt.Printf("Next steps:\n")
-	fmt.Printf("  1. Edit %s/memory.mdc with your AI instructions\n", initSourcePath)
-	fmt.Printf("  2. Add subagent files to %s/subagent/\n", initSourcePath)
+	fmt.Printf("  1. Edit %s/memory.mdc with your AI instructions\n", sourcePath)
+	fmt.Printf("  2. Add subagent files to %s/subagent/\n", sourcePath)
 	fmt.Printf("  3. Run 'wexler apply --tool=claude' to apply configurations\n")
 
 	return nil

@@ -59,7 +59,11 @@ func runApply(cmd *cobra.Command, args []string) error {
 	// Determine source path
 	sourcePath := applySource
 	if sourcePath == "" {
-		sourcePath = projectConfig.GetAbsoluteSourcePath(ctx.ProjectPath)
+		var err error
+		sourcePath, err = projectConfig.GetAbsoluteSourcePath()
+		if err != nil {
+			return fmt.Errorf("failed to resolve source path: %w", err)
+		}
 	} else {
 		sourcePath = filepath.Join(ctx.ProjectPath, sourcePath)
 	}

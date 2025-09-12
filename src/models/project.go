@@ -2,7 +2,9 @@ package models
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -12,22 +14,21 @@ const (
 
 // ProjectConfig represents the main project configuration (wexler.yaml)
 type ProjectConfig struct {
-	Name        string            `yaml:"name" json:"name"`
-	Version     string            `yaml:"version" json:"version"`
-	SourcePath  string            `yaml:"source_path" json:"source_path"`
-	StoragePath string            `yaml:"storage_path" json:"storage_path"`
-	Tools       map[string]string `yaml:"tools" json:"tools"`
+	Name       string            `yaml:"name" json:"name"`
+	Version    string            `yaml:"version" json:"version"`
+	SourcePath string            `yaml:"source_path" json:"source_path"` // 指向全局配置源，如 "~/.wexler"
+	Tools      map[string]string `yaml:"tools" json:"tools"`
 }
 
 // DefaultProjectConfig returns a project configuration with sensible defaults
-func DefaultProjectConfig(name string) *ProjectConfig {
-	return &ProjectConfig{
-		Name:       name,
-		Version:    "1.0.0",
-		SourcePath: DefaultWexlerSource,
-		Tools:      map[string]string{},
-	}
-}
+// func DefaultProjectConfig(name string) *ProjectConfig {
+// 	return &ProjectConfig{
+// 		Name:       name,
+// 		Version:    "1.0.0",
+// 		SourcePath: DefaultWexlerSource,
+// 		Tools:      map[string]string{},
+// 	}
+// }
 
 // Validate checks if the project configuration is valid
 func (p *ProjectConfig) Validate() error {
@@ -47,27 +48,40 @@ func (p *ProjectConfig) Validate() error {
 		return fmt.Errorf("source path cannot be empty")
 	}
 
-	if p.StoragePath == "" {
-		return fmt.Errorf("storage path cannot be empty")
-	}
-
 	return nil
 }
 
-// GetAbsoluteSourcePath returns the absolute path to the source directory
-func (p *ProjectConfig) GetAbsoluteSourcePath(projectRoot string) string {
-	if filepath.IsAbs(p.SourcePath) {
-		return p.SourcePath
+// GetAbsoluteSourcePath returns the absolute path to the global wexler source directory
+func (p *ProjectConfig) GetAbsoluteSourcePath() (string, error) {
+	// Handle ~ prefix for user home directory
+	if strings.HasPrefix(p.SourcePath, "~") {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("cannot determine user home directory: %w", err)
+		}
+		
+		if p.SourcePath == "~" {
+			return homeDir, nil
+		} else if strings.HasPrefix(p.SourcePath, "~/") {
+			return filepath.Join(homeDir, strings.TrimPrefix(p.SourcePath, "~/")), nil
+		}
 	}
-	return filepath.Join(projectRoot, p.SourcePath)
+	
+	if filepath.IsAbs(p.SourcePath) {
+		return p.SourcePath, nil
+	}
+	
+	// 拒绝相对路径
+	return "", fmt.Errorf("source path must be absolute or use ~ prefix, got: %s", p.SourcePath)
 }
 
-// GetAbsoluteStoragePath returns the absolute path to the storage directory
-func (p *ProjectConfig) GetAbsoluteStoragePath(projectRoot string) string {
-	if filepath.IsAbs(p.StoragePath) {
-		return p.StoragePath
+// GetDatabasePath returns the path to the wexler database file
+func (p *ProjectConfig) GetDatabasePath() (string, error) {
+	sourceAbs, err := p.GetAbsoluteSourcePath()
+	if err != nil {
+		return "", fmt.Errorf("cannot resolve source path: %w", err)
 	}
-	return filepath.Join(projectRoot, p.StoragePath)
+	return filepath.Join(sourceAbs, DefaultStorageFileName), nil
 }
 
 // IsToolEnabled checks if a specific tool is enabled in the project

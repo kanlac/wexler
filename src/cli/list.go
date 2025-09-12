@@ -66,29 +66,32 @@ func runList(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(w, "Name:\t%s\n", projectConfig.Name)
 		fmt.Fprintf(w, "Version:\t%s\n", projectConfig.Version)
 		fmt.Fprintf(w, "Source Path:\t%s\n", projectConfig.SourcePath)
-		fmt.Fprintf(w, "Storage Path:\t%s\n", projectConfig.StoragePath)
 		fmt.Fprintf(w, "\n")
 	}
 
 	// Show source files (unless filtering for MCP/tools only)
 	if !listMCP && !listTools {
-		sourcePath := projectConfig.GetAbsoluteSourcePath(ctx.ProjectPath)
-		sourceFiles, err := ctx.SourceManager.ListSourceFiles(sourcePath)
+		sourcePath, err := projectConfig.GetAbsoluteSourcePath()
 		if err != nil {
-			fmt.Printf("⚠️  Failed to list source files: %v\n", err)
+			fmt.Printf("⚠️  Failed to resolve source path: %v\n", err)
 		} else {
-			fmt.Fprintf(w, "SOURCE FILES\n")
-			if len(sourceFiles) == 0 {
-				fmt.Fprintf(w, "(none)\n")
+			sourceFiles, err := ctx.SourceManager.ListSourceFiles(sourcePath)
+			if err != nil {
+				fmt.Printf("⚠️  Failed to list source files: %v\n", err)
 			} else {
-				for _, file := range sourceFiles {
-					// Make path relative to project root
-					relPath := strings.TrimPrefix(file, ctx.ProjectPath)
-					relPath = strings.TrimPrefix(relPath, "/")
-					fmt.Fprintf(w, "%s\n", relPath)
+				fmt.Fprintf(w, "SOURCE FILES\n")
+				if len(sourceFiles) == 0 {
+					fmt.Fprintf(w, "(none)\n")
+				} else {
+					for _, file := range sourceFiles {
+						// Make path relative to source path
+						relPath := strings.TrimPrefix(file, sourcePath)
+						relPath = strings.TrimPrefix(relPath, "/")
+						fmt.Fprintf(w, "%s\n", relPath)
+					}
 				}
+				fmt.Fprintf(w, "\n")
 			}
-			fmt.Fprintf(w, "\n")
 		}
 	}
 
