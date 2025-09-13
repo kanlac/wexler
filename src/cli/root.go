@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"wexler/src/apply"
 	"wexler/src/config"
@@ -61,11 +60,21 @@ func NewAppContext() (*AppContext, error) {
 		return nil, fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	// Default storage path
-	storagePath := filepath.Join(projectPath, ".wexler", "storage.db")
+	// Load project configuration to get the correct storage path
+	configManager := config.NewManager()
+	projectConfig, err := configManager.LoadProject(projectPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load project configuration: %w", err)
+	}
+
+	// Get database path from project configuration
+	storagePath, err := projectConfig.GetDatabasePath()
+	if err != nil {
+		return nil, fmt.Errorf("failed to determine storage path: %w", err)
+	}
 
 	return &AppContext{
-		ConfigManager: config.NewManager(),
+		ConfigManager: configManager,
 		SourceManager: source.NewManager(),
 		ApplyManager:  apply.NewManager(),
 		ProjectPath:   projectPath,
