@@ -107,10 +107,11 @@ func (a *Adapter) generateClaudeFiles(config *ToolConfig) ([]ConfigFile, error) 
 
 	// Generate CLAUDE.md (memory configuration)
 	if config.Memory != nil && config.Memory.WexlerMemory != "" {
-		claudeContent := a.generateClaudeMemory(config.Memory)
+		// For Claude memory files, we need to generate content that matches what
+		// ContentExtractor will extract for comparison (only WEXLER section content)
 		files = append(files, ConfigFile{
 			Path:    "CLAUDE.md",
-			Content: claudeContent,
+			Content: config.Memory.WexlerMemory, // Only WEXLER content for comparison
 			Type:    "memory",
 		})
 	}
@@ -224,7 +225,7 @@ func (a *Adapter) generateClaudeMemory(memory *models.MemoryConfig) string {
 		}
 	}
 
-	// Upsert WEXLER section
+	// Upsert WEXLER section - only include the content, not the header
 	existingSections["WEXLER"] = memory.WexlerMemory
 
 	// Reconstruct markdown with WEXLER first, then other sections

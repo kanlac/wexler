@@ -136,16 +136,32 @@ func runApply(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("failed to detect conflicts for %s: %w", toolName, err)
 			}
 
-			if len(conflicts) > 0 {
-				fmt.Printf("⚠️  Found %d conflict(s) for %s:\n", len(conflicts), toolName)
-				for _, conflict := range conflicts {
-					fmt.Printf("  - %s (%s)\n", conflict.FilePath, conflict.FileType)
+			if len(conflicts) > 0 && !dryRun {
+				// Progressive conflict handling - prompt user for resolution
+				resolution, err := promptUser(conflicts, toolName)
+				if err != nil {
+					fmt.Printf("⚠️  Failed to get user input: %v\n", err)
+					fmt.Printf("⚠️  Defaulting to Stop for safety\n")
+					resolution = models.Stop
 				}
 
-				if !dryRun {
-					// In real implementation, this would prompt user for resolution
-					// For now, we'll stop on conflicts
-					return fmt.Errorf("conflicts detected for %s (use --force to overwrite)", toolName)
+				switch resolution {
+				case models.Stop:
+					fmt.Printf("⚠️  Operation stopped by user for %s. No changes were made.\n", toolName)
+					continue // Continue to next tool instead of returning error
+				case models.Continue:
+					fmt.Printf("✓ Continuing with conflict resolution for %s...\n", toolName)
+					applyConfig.Force = true // Force this specific application
+				case models.ContinueAll:
+					fmt.Printf("✓ Continuing with all conflicts for %s...\n", toolName)
+					applyConfig.Force = true // Force this specific application
+					force = true // Set global force for remaining tools
+				}
+			} else if len(conflicts) > 0 && dryRun {
+				// In dry run mode, just show conflicts as warnings
+				fmt.Printf("⚠️  Found %d conflict(s) for %s (dry run mode):\n", len(conflicts), toolName)
+				for _, conflict := range conflicts {
+					fmt.Printf("  - %s (%s)\n", conflict.FilePath, conflict.FileType)
 				}
 			}
 		}

@@ -4,17 +4,29 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"wexler/src/models"
 	"wexler/src/tools"
 )
 
 // Manager implements ApplyManager interface for configuration application
-type Manager struct{}
+type Manager struct{
+	contentExtractor ContentExtractor
+}
 
 // NewManager creates a new ApplyManager instance
 func NewManager() *Manager {
-	return &Manager{}
+	return &Manager{
+		contentExtractor: NewContentExtractor(),
+	}
+}
+
+// NewManagerWithExtractor creates a new ApplyManager instance with custom content extractor
+func NewManagerWithExtractor(extractor ContentExtractor) *Manager {
+	return &Manager{
+		contentExtractor: extractor,
+	}
 }
 
 // ApplyConfig applies source configuration to the target tool
@@ -62,24 +74,30 @@ func (m *Manager) ApplyConfig(config *models.ApplyConfig) (*models.ApplyResult, 
 		} else {
 			// Check for conflicts
 			if m.fileExists(targetPath) && !config.Force {
-				// Read existing content for conflict detection
-				existingContent, err := os.ReadFile(targetPath)
+				// Extract existing content using tool and file type specific logic
+				existingContent, err := m.contentExtractor.ExtractExistingContent(targetPath, config.ToolName, file.Type)
 				if err != nil {
-					result.SetError(fmt.Errorf("failed to read existing file %s: %w", targetPath, err))
+					result.SetError(fmt.Errorf("failed to extract existing content from %s: %w", targetPath, err))
 					return result, err
 				}
 
-				if string(existingContent) != file.Content {
+				if existingContent != file.Content {
 					// Create conflict
-					conflict := m.createConflict(file.Path, string(existingContent), file.Content, file.Type)
+					conflict := m.createConflict(file.Path, existingContent, file.Content, file.Type)
 					result.AddConflict(conflict)
 					result.AddSkippedFile(file.Path)
 					continue
 				}
 			}
 
-			// Write the file
-			if err := m.writeFile(targetPath, file.Content); err != nil {
+			// Write the file with appropriate content transformation
+			actualContent, err := m.getActualWriteContent(file, config.ToolName)
+			if err != nil {
+				result.SetError(fmt.Errorf("failed to generate write content for %s: %w", targetPath, err))
+				return result, err
+			}
+			
+			if err := m.writeFile(targetPath, actualContent); err != nil {
 				result.SetError(fmt.Errorf("failed to write file %s: %w", targetPath, err))
 				return result, err
 			}
@@ -87,10 +105,13 @@ func (m *Manager) ApplyConfig(config *models.ApplyConfig) (*models.ApplyResult, 
 		}
 	}
 
-	// Check if we have conflicts
+	// Check if we have conflicts - but don't fail the operation
 	if len(result.Conflicts) > 0 {
-		result.Success = false
-		result.Error = fmt.Sprintf("%d conflicts detected", len(result.Conflicts))
+		// Mark as successful but with conflicts detected
+		result.Success = true
+		if result.Error == "" {
+			result.Error = fmt.Sprintf("%d conflicts detected but proceeding", len(result.Conflicts))
+		}
 	} else {
 		result.SetSuccess()
 	}
@@ -130,13 +151,14 @@ func (m *Manager) DetectConflicts(config *models.ApplyConfig) ([]*models.FileCon
 		targetPath := filepath.Join(config.ProjectPath, file.Path)
 		
 		if m.fileExists(targetPath) {
-			existingContent, err := os.ReadFile(targetPath)
+			// Extract existing content using tool and file type specific logic
+			existingContent, err := m.contentExtractor.ExtractExistingContent(targetPath, config.ToolName, file.Type)
 			if err != nil {
-				return nil, fmt.Errorf("failed to read existing file %s: %w", targetPath, err)
+				return nil, fmt.Errorf("failed to extract existing content from %s: %w", targetPath, err)
 			}
 
-			if string(existingContent) != file.Content {
-				conflict := m.createConflict(file.Path, string(existingContent), file.Content, file.Type)
+			if existingContent != file.Content {
+				conflict := m.createConflict(file.Path, existingContent, file.Content, file.Type)
 				conflicts = append(conflicts, conflict)
 			}
 		}
@@ -223,4 +245,89 @@ func (m *Manager) hashContent(content string) string {
 func (m *Manager) generateDiff(existing, new string) string {
 	return fmt.Sprintf("-%d lines, +%d lines", 
 		len(existing), len(new))
+}
+
+// getActualWriteContent gets the actual content to write to file
+// For some file types like CLAUDE.md, this involves merging with existing content
+func (m *Manager) getActualWriteContent(file tools.ConfigFile, toolName string) (string, error) {
+	switch toolName {
+	case "claude":
+		return m.getClaudeWriteContent(file)
+	case "cursor":
+		return m.getCursorWriteContent(file)
+	default:
+		return file.Content, nil
+	}
+}
+
+// getClaudeWriteContent gets write content for Claude tool
+func (m *Manager) getClaudeWriteContent(file tools.ConfigFile) (string, error) {
+	if file.Type == "memory" && file.Path == "CLAUDE.md" {
+		// For CLAUDE.md, we need to generate full content with WEXLER section merged
+		return m.generateClaudeMemoryContent(file.Content)
+	}
+	return file.Content, nil
+}
+
+// getCursorWriteContent gets write content for Cursor tool
+func (m *Manager) getCursorWriteContent(file tools.ConfigFile) (string, error) {
+	// Cursor files are written as-is
+	return file.Content, nil
+}
+
+// generateClaudeMemoryContent generates full CLAUDE.md content with WEXLER section
+func (m *Manager) generateClaudeMemoryContent(wexlerContent string) (string, error) {
+	// Try to read existing CLAUDE.md file
+	existingContent := ""
+	if data, err := os.ReadFile("CLAUDE.md"); err == nil {
+		existingContent = string(data)
+	}
+
+	// Parse existing content into sections
+	existingSections := make(map[string]string)
+	if existingContent != "" {
+		lines := strings.Split(existingContent, "\n")
+		var currentSection string
+		var currentContent []string
+
+		for _, line := range lines {
+			if strings.HasPrefix(line, "# ") {
+				// Save previous section
+				if currentSection != "" {
+					existingSections[currentSection] = strings.Join(currentContent, "\n")
+				}
+				// Start new section
+				currentSection = strings.TrimPrefix(line, "# ")
+				currentSection = strings.TrimSpace(currentSection)
+				currentContent = []string{}
+			} else if currentSection != "" {
+				currentContent = append(currentContent, line)
+			}
+		}
+		// Save final section
+		if currentSection != "" {
+			existingSections[currentSection] = strings.Join(currentContent, "\n")
+		}
+	}
+
+	// Upsert WEXLER section
+	existingSections["WEXLER"] = wexlerContent
+
+	// Reconstruct markdown with WEXLER first, then other sections
+	var parts []string
+	
+	// Add WEXLER section first
+	if wexlerContent, exists := existingSections["WEXLER"]; exists && strings.TrimSpace(wexlerContent) != "" {
+		parts = append(parts, fmt.Sprintf("# WEXLER\n%s", strings.TrimSpace(wexlerContent)))
+		delete(existingSections, "WEXLER") // Remove from remaining sections
+	}
+
+	// Add other sections
+	for sectionName, content := range existingSections {
+		if sectionName != "" && strings.TrimSpace(content) != "" {
+			parts = append(parts, fmt.Sprintf("# %s\n%s", sectionName, strings.TrimSpace(content)))
+		}
+	}
+
+	return strings.Join(parts, "\n\n"), nil
 }
