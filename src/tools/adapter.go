@@ -150,7 +150,7 @@ func (a *Adapter) generateCursorFiles(config *ToolConfig) ([]ConfigFile, error) 
 
 	// Generate .cursor/rules/general.wexler.mdc (memory configuration)
 	if config.Memory != nil && config.Memory.WexlerMemory != "" {
-		cursorContent := config.Memory.WexlerMemory
+		cursorContent := a.generateCursorMemoryContent(config.Memory.WexlerMemory, "General Memories")
 		files = append(files, ConfigFile{
 			Path:    ".cursor/rules/general.wexler.mdc",
 			Content: cursorContent,
@@ -161,10 +161,12 @@ func (a *Adapter) generateCursorFiles(config *ToolConfig) ([]ConfigFile, error) 
 	// Generate subagent files in .cursor/rules/
 	for _, subagent := range config.Subagents {
 		if subagent != nil && subagent.Name != "" {
+			description := a.extractDescriptionFromContent(subagent.Content, subagent.Name)
+			cursorContent := a.generateCursorSubagentContent(subagent.Content, description)
 			rulePath := filepath.Join(".cursor", "rules", subagent.Name+".wexler.mdc")
 			files = append(files, ConfigFile{
 				Path:    rulePath,
-				Content: subagent.Content,
+				Content: cursorContent,
 				Type:    "subagent",
 			})
 		}
@@ -469,4 +471,54 @@ func (a *Adapter) mergeMCPFiles(existing, new ConfigFile) (ConfigFile, bool, err
 	}
 
 	return mergedFile, hasConflict, nil
+}
+
+// generateCursorMemoryContent generates Cursor memory file content with frontmatter
+func (a *Adapter) generateCursorMemoryContent(content, description string) string {
+	frontmatter := fmt.Sprintf(`---
+description: %s
+globs:
+alwaysApply: true
+---
+
+`, description)
+	
+	return frontmatter + strings.TrimSpace(content)
+}
+
+// generateCursorSubagentContent generates Cursor subagent file content with frontmatter
+func (a *Adapter) generateCursorSubagentContent(content, description string) string {
+	frontmatter := fmt.Sprintf(`---
+description: %s
+globs:
+alwaysApply: true
+---
+
+`, description)
+	
+	return frontmatter + strings.TrimSpace(content)
+}
+
+// extractDescriptionFromContent extracts description from markdown content
+// First tries to find first level-1 header (# Title), then falls back to filename
+func (a *Adapter) extractDescriptionFromContent(content, fallbackName string) string {
+	if strings.TrimSpace(content) == "" {
+		return fallbackName
+	}
+	
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		// Look for level-1 header
+		if strings.HasPrefix(line, "# ") {
+			title := strings.TrimPrefix(line, "# ")
+			title = strings.TrimSpace(title)
+			if title != "" {
+				return title
+			}
+		}
+	}
+	
+	// No title found, use filename
+	return fallbackName
 }
