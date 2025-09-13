@@ -92,7 +92,11 @@ wexler list --mcp
 
 ```
 
-显示 Wexler 管理的配置清单。
+## 如何安装
+
+```bash
+make install
+```
 
 ## 存储架构
 
