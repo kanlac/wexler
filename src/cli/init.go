@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"wexler/src/config"
 	"wexler/src/models"
 
 	"github.com/spf13/cobra"
@@ -44,13 +45,13 @@ including source directory for AI configurations and MCP settings.`,
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
-	ctx, err := NewAppContext()
+	// For init command, we don't use NewAppContext since it requires existing wexler.yaml
+	projectPath, err := os.Getwd()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get current directory: %w", err)
 	}
-	defer ctx.CloseResources()
 
-	projectPath := ctx.ProjectPath
+	configManager := config.NewManager()
 
 	// Determine project name
 	projectName := initName
@@ -88,7 +89,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Save project configuration
-	if err := ctx.ConfigManager.SaveProject(config); err != nil {
+	if err := configManager.SaveProject(config); err != nil {
 		return fmt.Errorf("failed to save project configuration: %w", err)
 	}
 
