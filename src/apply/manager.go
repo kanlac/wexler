@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"wexler/src/models"
-	"wexler/src/tools"
+	"mindful/src/models"
+	"mindful/src/tools"
 )
 
 // Manager implements ApplyManager interface for configuration application
-type Manager struct{
+type Manager struct {
 	contentExtractor ContentExtractor
 }
 
@@ -41,7 +41,7 @@ func (m *Manager) ApplyConfig(config *models.ApplyConfig) (*models.ApplyResult, 
 	}
 
 	result := models.NewApplyResult()
-	
+
 	// Create tool adapter
 	adapter, err := tools.NewAdapter(config.ToolName)
 	if err != nil {
@@ -51,7 +51,7 @@ func (m *Manager) ApplyConfig(config *models.ApplyConfig) (*models.ApplyResult, 
 
 	// Convert to tool config
 	toolConfig := m.convertToToolConfig(config)
-	
+
 	// Generate configuration files
 	files, err := adapter.Generate(toolConfig)
 	if err != nil {
@@ -65,9 +65,9 @@ func (m *Manager) ApplyConfig(config *models.ApplyConfig) (*models.ApplyResult, 
 	// Process each file
 	for i, file := range files {
 		result.Progress.UpdateProgress(i, file.Path)
-		
+
 		targetPath := filepath.Join(config.ProjectPath, file.Path)
-		
+
 		if config.DryRun {
 			// In dry run mode, just track what would be written
 			result.AddSkippedFile(file.Path)
@@ -96,7 +96,7 @@ func (m *Manager) ApplyConfig(config *models.ApplyConfig) (*models.ApplyResult, 
 				result.SetError(fmt.Errorf("failed to generate write content for %s: %w", targetPath, err))
 				return result, err
 			}
-			
+
 			if err := m.writeFile(targetPath, actualContent); err != nil {
 				result.SetError(fmt.Errorf("failed to write file %s: %w", targetPath, err))
 				return result, err
@@ -149,7 +149,7 @@ func (m *Manager) DetectConflicts(config *models.ApplyConfig) ([]*models.FileCon
 	// Check each file for conflicts
 	for _, file := range files {
 		targetPath := filepath.Join(config.ProjectPath, file.Path)
-		
+
 		if m.fileExists(targetPath) {
 			// Extract existing content using tool and file type specific logic
 			existingContent, err := m.contentExtractor.ExtractExistingContent(targetPath, config.ToolName, file.Type)
@@ -191,9 +191,9 @@ func (m *Manager) ResolveConflicts(conflicts []*models.FileConflict, resolution 
 // convertToToolConfig converts ApplyConfig to ToolConfig
 func (m *Manager) convertToToolConfig(config *models.ApplyConfig) *tools.ToolConfig {
 	toolConfig := &tools.ToolConfig{
-		ToolName:  config.ToolName,
-		Memory:    config.Source.Memory,
-		MCP:       config.MCP,
+		ToolName: config.ToolName,
+		Memory:   config.Source.Memory,
+		MCP:      config.MCP,
 	}
 
 	// Convert subagents map to slice
@@ -243,7 +243,7 @@ func (m *Manager) hashContent(content string) string {
 
 // generateDiff generates a simple diff representation
 func (m *Manager) generateDiff(existing, new string) string {
-	return fmt.Sprintf("-%d lines, +%d lines", 
+	return fmt.Sprintf("-%d lines, +%d lines",
 		len(existing), len(new))
 }
 
@@ -263,7 +263,7 @@ func (m *Manager) getActualWriteContent(file tools.ConfigFile, toolName string) 
 // getClaudeWriteContent gets write content for Claude tool
 func (m *Manager) getClaudeWriteContent(file tools.ConfigFile) (string, error) {
 	if file.Type == "memory" && file.Path == "CLAUDE.md" {
-		// For CLAUDE.md, we need to generate full content with WEXLER section merged
+		// For CLAUDE.md, we need to generate full content with MINDFUL section merged
 		return m.generateClaudeMemoryContent(file.Content)
 	}
 	return file.Content, nil
@@ -275,8 +275,8 @@ func (m *Manager) getCursorWriteContent(file tools.ConfigFile) (string, error) {
 	return file.Content, nil
 }
 
-// generateClaudeMemoryContent generates full CLAUDE.md content with WEXLER section
-func (m *Manager) generateClaudeMemoryContent(wexlerContent string) (string, error) {
+// generateClaudeMemoryContent generates full CLAUDE.md content with MINDFUL section
+func (m *Manager) generateClaudeMemoryContent(mindfulContent string) (string, error) {
 	// Try to read existing CLAUDE.md file
 	existingContent := ""
 	if data, err := os.ReadFile("CLAUDE.md"); err == nil {
@@ -310,16 +310,16 @@ func (m *Manager) generateClaudeMemoryContent(wexlerContent string) (string, err
 		}
 	}
 
-	// Upsert WEXLER section
-	existingSections["WEXLER"] = wexlerContent
+	// Upsert MINDFUL section
+	existingSections["MINDFUL"] = mindfulContent
 
-	// Reconstruct markdown with WEXLER first, then other sections
+	// Reconstruct markdown with MINDFUL first, then other sections
 	var parts []string
-	
-	// Add WEXLER section first
-	if wexlerContent, exists := existingSections["WEXLER"]; exists && strings.TrimSpace(wexlerContent) != "" {
-		parts = append(parts, fmt.Sprintf("# WEXLER\n%s", strings.TrimSpace(wexlerContent)))
-		delete(existingSections, "WEXLER") // Remove from remaining sections
+
+	// Add MINDFUL section first
+	if mindfulContent, exists := existingSections["MINDFUL"]; exists && strings.TrimSpace(mindfulContent) != "" {
+		parts = append(parts, fmt.Sprintf("# MINDFUL\n%s", strings.TrimSpace(mindfulContent)))
+		delete(existingSections, "MINDFUL") // Remove from remaining sections
 	}
 
 	// Add other sections

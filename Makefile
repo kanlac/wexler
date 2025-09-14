@@ -5,7 +5,7 @@
 INSTALL_DIR ?= /usr/local/bin
 
 build:
-	go build -o bin/wexler cmd/wexler/main.go
+	go build -o bin/mindful cmd/mindful/main.go
 
 test:
 	go test ./tests/...
@@ -30,11 +30,11 @@ clean:
 	rm -rf bin/
 
 install: build
-	@echo "Installing wexler to $(INSTALL_DIR)..."
-	sudo cp bin/wexler $(INSTALL_DIR)/wexler
-	sudo chmod +x $(INSTALL_DIR)/wexler
-	@echo "wexler installed successfully to $(INSTALL_DIR)/wexler"
-	@echo "You can now run 'wexler' from anywhere"
+	@echo "Installing mindful to $(INSTALL_DIR)..."
+	sudo cp bin/mindful $(INSTALL_DIR)/mindful
+	sudo chmod +x $(INSTALL_DIR)/mindful
+	@echo "mindful installed successfully to $(INSTALL_DIR)/mindful"
+	@echo "You can now run 'mindful' from anywhere"
 
 install-deps:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest

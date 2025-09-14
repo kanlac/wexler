@@ -1,4 +1,4 @@
-# Wexler - Share Your Handy Prompts and MCPs Across Projects
+# Mindful (Formerly Wexler) - Make Your Coding Agents Mindful of Your Taste
 
 ## 问题定位
 
@@ -10,7 +10,7 @@
 
 ## 项目概述
 
-Wexler 通过统一的配置源和自动化同步机制，将您精心维护的 AI 长期记忆、Subagents (Roles) 以及 MCP 配置，与特定 AI 工具解耦，实现"一次配置，多处使用"。
+Mindful 通过统一的配置源和自动化同步机制，将您精心维护的 AI 长期记忆、Subagents (Roles) 以及 MCP 配置，与特定 AI 工具解耦，实现"一次配置，多处使用"。
 
 ## 核心价值
 
@@ -26,8 +26,8 @@ Wexler 通过统一的配置源和自动化同步机制，将您精心维护的 
 
 ### 团队协作模式
 
-1. **维护 Wexler 源仓库**：创建一个 Git 仓库作为 Wexler source，统一管理团队共享的知识和 AI 配置
-2. **嵌入工作流**：将 `wexler apply` 命令加入项目 Makefile，确保团队成员自动获取最新配置
+1. **维护 Mindful 源仓库**：创建一个 Git 仓库作为 Mindful source，统一管理团队共享的知识和 AI 配置
+2. **嵌入工作流**：将 `mindful apply` 命令加入项目 Makefile，确保团队成员自动获取最新配置
 
 **Makefile 示例**：
 
@@ -35,37 +35,37 @@ Wexler 通过统一的配置源和自动化同步机制，将您精心维护的 
 # 开发环境初始化
 dev-init:
     go mod download
-    wexler init --source=../team-wexler-configs
-    wexler apply
+    mindful init --source=../team-mindful-configs
+    mindful apply
 
 # 更新 AI 配置
 update-ai:
-    cd ../team-wexler-configs && git pull
-    wexler apply
+    cd ../team-mindful-configs && git pull
+    mindful apply
 
 ```
 
 ### 个人使用模式
 
-维护个人的 Wexler 配置目录，在多个项目间复用配置，轻松切换不同的 AI 工具。
+维护个人的 Mindful 配置目录，在多个项目间复用配置，轻松切换不同的 AI 工具。
 
 ## 命令设计
 
 ### 1. 初始化（init）
 
 ```bash
-wexler init
-wexler init --source=/path/to/wexler-configs
+mindful init
+mindful init --source=/path/to/mindful-configs
 
 ```
 
-在项目目录初始化 Wexler，创建 `wexler.yaml` 配置文件。
+在项目目录初始化，创建 `mindful.yaml` 配置文件。
 
 ### 2. 导入（import）
 
 ```bash
-wexler import
-wexler import --tool=claude
+mindful import
+mindful import --tool=claude
 
 ```
 
@@ -74,12 +74,12 @@ wexler import --tool=claude
 ### 3. 应用（apply）
 
 ```bash
-wexler apply
-wexler apply --tool=cursor
+mindful apply
+mindful apply --tool=cursor
 
 ```
 
-将 Wexler 管理的配置应用到各 AI 工具：
+将 Mindful 管理的配置应用到各 AI 工具：
 
 - 生成/更新配置文件
 - 注入 MCP 配置和 API 密钥
@@ -87,8 +87,8 @@ wexler apply --tool=cursor
 ### 4. 列表（list）
 
 ```bash
-wexler list
-wexler list --mcp
+mindful list
+mindful list --mcp
 
 ```
 
@@ -100,16 +100,16 @@ make install
 
 ## 存储架构
 
-### Wexler 源目录
+### Mindful 源目录
 
 ```
-$WEXLER_DIR/                    # 团队共享的配置源
+$MINDFUL_DIR/                    # 团队共享的配置源
 ├── memory.mdc                  # 通用记忆配置
 ├── subagent/                   # Subagent/Role 配置
 │   ├── code-reviewer.mdc
 │   ├── test-writer.mdc
 │   └── architect.mdc
-└── wexler.db                   # BoltDB（API密钥等敏感信息）
+└── mindful.db                   # BoltDB（API密钥等敏感信息）
 
 ```
 
@@ -117,14 +117,14 @@ $WEXLER_DIR/                    # 团队共享的配置源
 
 ```
 project/
-├── wexler.yaml                 # Wexler 项目配置
+├── mindful.yaml                 # Mindful 项目配置
 ├── CLAUDE.md                   # Claude Code 配置
 ├── .claude/
 │   └── agents/
-│       └── *.wexler.md
+│       └── *.mindful.md
 ├── .cursor/
 │   └── rules/
-│       └── *.wexler.mdc
+│       └── *.mindful.mdc
 └── .mcp.json                   # MCP 配置
 
 ```
@@ -133,27 +133,27 @@ project/
 
 ### 1. 通用记忆（General Memory）
 
-| Wexler 源 | Claude Code | Cursor |
+| Mindful 源 | Claude Code | Cursor |
 | --- | --- | --- |
-| `memory.mdc` | `CLAUDE.md`（二级标题标识） | `.cursor/rules/general.wexler.mdc` |
+| `memory.mdc` | `CLAUDE.md`（二级标题标识） | `.cursor/rules/general.mindful.mdc` |
 
 ### 2. Subagent/Role 配置
 
-| Wexler 源 | Claude Code | Cursor |
+| Mindful 源 | Claude Code | Cursor |
 | --- | --- | --- |
-| `subagent/code-reviewer.mdc` | `.claude/agents/code-reviewer.wexler.md` | `.cursor/rules/code-reviewer.wexler.mdc` |
+| `subagent/code-reviewer.mdc` | `.claude/agents/code-reviewer.mindful.md` | `.cursor/rules/code-reviewer.mindful.mdc` |
 
 ### 3. MCP 配置
 
-| Wexler 源 | Claude Code | Cursor |
+| Mindful 源 | Claude Code | Cursor |
 | --- | --- | --- |
-| `wexler.db` | `.mcp.json`（upsert） | `.cursor/mcp.json` |
+| `mindful.db` | `.mcp.json`（upsert） | `.cursor/mcp.json` |
 
-## 项目配置文件（wexler.yaml）
+## 项目配置文件（mindful.yaml）
 
 ```yaml
 version: 1.0
-source: /Users/alice/team-wexler-configs    # 本地文件系统路径
+source: /Users/alice/team-mindful-configs    # 本地文件系统路径
 tools:
   - claude
   - cursor
@@ -173,35 +173,17 @@ tools:
 ### Apply 时的 Upsert 逻辑
 
 1. 读取现有 `.mcp.json`
-2. 从 BoltDB 解码 Wexler 管理的配置
-3. 合并配置（Wexler 优先）
+2. 从 BoltDB 解码 Mindful 管理的配置
+3. 合并配置（Mindful 优先）
 4. 写回 `.mcp.json`
-
-## 源管理（Source）
-
-### 当前版本（MVP）
-
-仅支持本地文件系统源：
-
-- 通过绝对路径或相对路径指定
-- 支持符号链接
-- 自动检查源目录有效性
-
-### 后续计划
-
-远程 Git 源支持（包括 clone、pull、分支管理等）将在后续版本实现，以确保 MVP 的快速交付。
 
 ## 未来扩展计划
 
 1. **Phase 2**（配置增强）
-    - 远程 Git 源支持（clone、pull、分支管理）
-    - 配置继承和覆盖机制
-    - 配置模板功能
+    - 远程 Git 源支持
+    - 更方便智能地导入现有 AI 配置
 2. **Phase 3**（工具扩展）
-    - 支持更多 AI 工具（GitHub Copilot、Continue、Codeium）
-    - IDE 插件配置同步
+    - 支持更多 AI 编程工具（GitHub Copilot, Windsurf）
     - Web UI 管理界面
 3. **Phase 4**（企业特性）
-    - 真正的加密存储（AES-256）
-    - 团队权限管理
-    - 配置审计日志
+    - 针对 MCP API key 等敏感数据做加密存储（如 AES-256）

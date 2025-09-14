@@ -1,4 +1,4 @@
-module wexler
+module mindful
 
 go 1.23
 

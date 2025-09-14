@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"wexler/src/models"
+	"mindful/src/models"
 )
 
 // Adapter implements ToolAdapter interface for configuration generation
@@ -25,10 +25,10 @@ type ConfigFile struct {
 
 // ToolConfig represents input configuration for tool adaptation
 type ToolConfig struct {
-	ToolName  string                    `yaml:"tool_name" json:"tool_name"`
-	Memory    *models.MemoryConfig      `yaml:"memory" json:"memory"`
-	Subagents []*models.SubagentConfig  `yaml:"subagents" json:"subagents"`
-	MCP       *models.MCPConfig         `yaml:"mcp" json:"mcp"`
+	ToolName  string                   `yaml:"tool_name" json:"tool_name"`
+	Memory    *models.MemoryConfig     `yaml:"memory" json:"memory"`
+	Subagents []*models.SubagentConfig `yaml:"subagents" json:"subagents"`
+	MCP       *models.MCPConfig        `yaml:"mcp" json:"mcp"`
 }
 
 // ConflictResult represents the result of a merge operation
@@ -106,12 +106,12 @@ func (a *Adapter) generateClaudeFiles(config *ToolConfig) ([]ConfigFile, error) 
 	var files []ConfigFile
 
 	// Generate CLAUDE.md (memory configuration)
-	if config.Memory != nil && config.Memory.WexlerMemory != "" {
+	if config.Memory != nil && config.Memory.MindfulMemory != "" {
 		// For Claude memory files, we need to generate content that matches what
-		// ContentExtractor will extract for comparison (only WEXLER section content)
+		// ContentExtractor will extract for comparison (only MINDFUL section content)
 		files = append(files, ConfigFile{
 			Path:    "CLAUDE.md",
-			Content: config.Memory.WexlerMemory, // Only WEXLER content for comparison
+			Content: config.Memory.MindfulMemory, // Only MINDFUL content for comparison
 			Type:    "memory",
 		})
 	}
@@ -119,7 +119,7 @@ func (a *Adapter) generateClaudeFiles(config *ToolConfig) ([]ConfigFile, error) 
 	// Generate subagent files in .claude/agents/
 	for _, subagent := range config.Subagents {
 		if subagent != nil && subagent.Name != "" {
-			agentPath := filepath.Join(".claude", "agents", subagent.Name+".wexler.md")
+			agentPath := filepath.Join(".claude", "agents", subagent.Name+".mindful.md")
 			files = append(files, ConfigFile{
 				Path:    agentPath,
 				Content: subagent.Content,
@@ -148,11 +148,11 @@ func (a *Adapter) generateClaudeFiles(config *ToolConfig) ([]ConfigFile, error) 
 func (a *Adapter) generateCursorFiles(config *ToolConfig) ([]ConfigFile, error) {
 	var files []ConfigFile
 
-	// Generate .cursor/rules/general.wexler.mdc (memory configuration)
-	if config.Memory != nil && config.Memory.WexlerMemory != "" {
-		cursorContent := a.generateCursorMemoryContent(config.Memory.WexlerMemory, "General Memories")
+	// Generate .cursor/rules/general.mindful.mdc (memory configuration)
+	if config.Memory != nil && config.Memory.MindfulMemory != "" {
+		cursorContent := a.generateCursorMemoryContent(config.Memory.MindfulMemory, "General Memories")
 		files = append(files, ConfigFile{
-			Path:    ".cursor/rules/general.wexler.mdc",
+			Path:    ".cursor/rules/general.mindful.mdc",
 			Content: cursorContent,
 			Type:    "memory",
 		})
@@ -163,7 +163,7 @@ func (a *Adapter) generateCursorFiles(config *ToolConfig) ([]ConfigFile, error) 
 		if subagent != nil && subagent.Name != "" {
 			description := a.extractDescriptionFromContent(subagent.Content, subagent.Name)
 			cursorContent := a.generateCursorSubagentContent(subagent.Content, description)
-			rulePath := filepath.Join(".cursor", "rules", subagent.Name+".wexler.mdc")
+			rulePath := filepath.Join(".cursor", "rules", subagent.Name+".mindful.mdc")
 			files = append(files, ConfigFile{
 				Path:    rulePath,
 				Content: cursorContent,
@@ -188,9 +188,9 @@ func (a *Adapter) generateCursorFiles(config *ToolConfig) ([]ConfigFile, error) 
 	return files, nil
 }
 
-// generateClaudeMemory generates CLAUDE.md content, preserving existing sections and upserting WEXLER section
+// generateClaudeMemory generates CLAUDE.md content, preserving existing sections and upserting MINDFUL section
 func (a *Adapter) generateClaudeMemory(memory *models.MemoryConfig) string {
-	if memory == nil || memory.WexlerMemory == "" {
+	if memory == nil || memory.MindfulMemory == "" {
 		return ""
 	}
 
@@ -227,16 +227,16 @@ func (a *Adapter) generateClaudeMemory(memory *models.MemoryConfig) string {
 		}
 	}
 
-	// Upsert WEXLER section - only include the content, not the header
-	existingSections["WEXLER"] = memory.WexlerMemory
+	// Upsert MINDFUL section - only include the content, not the header
+	existingSections["MINDFUL"] = memory.MindfulMemory
 
-	// Reconstruct markdown with WEXLER first, then other sections
+	// Reconstruct markdown with MINDFUL first, then other sections
 	var parts []string
-	
-	// Add WEXLER section first
-	if wexlerContent, exists := existingSections["WEXLER"]; exists {
-		parts = append(parts, fmt.Sprintf("# WEXLER\n%s", strings.TrimSpace(wexlerContent)))
-		delete(existingSections, "WEXLER") // Remove from remaining sections
+
+	// Add MINDFUL section first
+	if mindfulContent, exists := existingSections["MINDFUL"]; exists {
+		parts = append(parts, fmt.Sprintf("# MINDFUL\n%s", strings.TrimSpace(mindfulContent)))
+		delete(existingSections, "MINDFUL") // Remove from remaining sections
 	}
 
 	// Add other sections
@@ -482,7 +482,7 @@ alwaysApply: true
 ---
 
 `, description)
-	
+
 	return frontmatter + strings.TrimSpace(content)
 }
 
@@ -495,7 +495,7 @@ alwaysApply: true
 ---
 
 `, description)
-	
+
 	return frontmatter + strings.TrimSpace(content)
 }
 
@@ -505,7 +505,7 @@ func (a *Adapter) extractDescriptionFromContent(content, fallbackName string) st
 	if strings.TrimSpace(content) == "" {
 		return fallbackName
 	}
-	
+
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -518,7 +518,7 @@ func (a *Adapter) extractDescriptionFromContent(content, fallbackName string) st
 			}
 		}
 	}
-	
+
 	// No title found, use filename
 	return fallbackName
 }

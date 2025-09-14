@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"wexler/src/cli"
+	"mindful/src/cli"
 )
 
 func main() {

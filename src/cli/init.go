@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"wexler/src/config"
-	"wexler/src/models"
+	"mindful/src/config"
+	"mindful/src/models"
 
 	"github.com/spf13/cobra"
 )
@@ -20,24 +20,24 @@ var (
 func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init [PROJECT_NAME]",
-		Short: "Initialize Wexler in project directory",
-		Long: `Initialize Wexler configuration management in the current directory.
+		Short: "Initialize Mindful in project directory",
+		Long: `Initialize Mindful configuration management in the current directory.
 
-Creates a wexler.yaml configuration file and sets up the basic project structure
+Creates a mindful.yaml configuration file and sets up the basic project structure
 including source directory for AI configurations and MCP settings.`,
 		Example: `  # Initialize with default settings
-  wexler init
+  mindful init
 
   # Initialize with custom project name
-  wexler init my-project
+  mindful init my-project
 
   # Initialize with custom source directory
-  wexler init --source=/usr/ai-configs`,
+  mindful init --source=/usr/ai-configs`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: runInit,
 	}
 
-	cmd.Flags().StringVar(&initSourcePath, "source", models.DefaultWexlerSource, "source directory for AI configurations")
+	cmd.Flags().StringVar(&initSourcePath, "source", models.DefaultMindfulSource, "source directory for AI configurations")
 	cmd.Flags().StringVar(&initName, "name", "", "project name (default: directory name)")
 	cmd.Flags().StringVar(&initVersion, "version", "1.0.0", "project version")
 
@@ -45,7 +45,7 @@ including source directory for AI configurations and MCP settings.`,
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
-	// For init command, we don't use NewAppContext since it requires existing wexler.yaml
+	// For init command, we don't use NewAppContext since it requires existing mindful.yaml
 	projectPath, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get current directory: %w", err)
@@ -63,13 +63,13 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	if verbose {
-		fmt.Printf("Initializing Wexler project '%s' in %s\n", projectName, projectPath)
+		fmt.Printf("Initializing Mindful project '%s' in %s\n", projectName, projectPath)
 	}
 
 	// Check if already initialized
-	configPath := filepath.Join(projectPath, "wexler.yaml")
+	configPath := filepath.Join(projectPath, "mindful.yaml")
 	if _, err := os.Stat(configPath); err == nil && !force {
-		return fmt.Errorf("wexler.yaml already exists (use --force to overwrite)")
+		return fmt.Errorf("mindful.yaml already exists (use --force to overwrite)")
 	}
 
 	// Create project configuration
@@ -93,12 +93,12 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save project configuration: %w", err)
 	}
 
-	// Create global wexler source directory structure
+	// Create global mindful source directory structure
 	sourcePath, err := config.GetAbsoluteSourcePath()
 	if err != nil {
 		return fmt.Errorf("failed to resolve source path: %w", err)
 	}
-	
+
 	if err := os.MkdirAll(sourcePath, 0755); err != nil {
 		return fmt.Errorf("failed to create source directory: %w", err)
 	}
@@ -112,8 +112,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	// Create sample memory.mdc file
 	memoryPath := filepath.Join(sourcePath, "memory.mdc")
 	if _, err := os.Stat(memoryPath); os.IsNotExist(err) {
-		sampleMemory := `# WEXLER
-<--- Main memory of all coding agents. Managed by wexler. DO NOT EDIT outside our wexler source directory. --->
+		sampleMemory := `# MINDFUL
+<--- Main memory of all coding agents. Managed by mindful. DO NOT EDIT outside our mindful source directory. --->
 
 ## Workflow
 Prefer running single tests for performance.
@@ -144,7 +144,7 @@ Focus on:
 		}
 	}
 
-	fmt.Printf("✅ Wexler initialized successfully!\n\n")
+	fmt.Printf("✅ Mindful initialized successfully!\n\n")
 	fmt.Printf("Project: %s (v%s)\n", projectName, initVersion)
 	fmt.Printf("Source directory: %s\n", initSourcePath)
 	fmt.Printf("Actual source path: %s\n", sourcePath)
@@ -152,7 +152,7 @@ Focus on:
 	fmt.Printf("Next steps:\n")
 	fmt.Printf("  1. Edit %s/memory.mdc with your AI instructions\n", sourcePath)
 	fmt.Printf("  2. Add subagent files to %s/subagent/\n", sourcePath)
-	fmt.Printf("  3. Run 'wexler apply --tool=claude' to apply configurations\n")
+	fmt.Printf("  3. Run 'mindful apply --tool=claude' to apply configurations\n")
 
 	return nil
 }

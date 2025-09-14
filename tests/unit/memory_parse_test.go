@@ -1,40 +1,40 @@
 package unit
 
 import (
+	"mindful/src/models"
 	"testing"
-	"wexler/src/models"
 )
 
 func TestMemoryConfig_ParseMemoryContent(t *testing.T) {
 	tests := []struct {
-		name           string
-		content        string
-		wantWexler     string
-		wantErr        bool
+		name        string
+		content     string
+		wantMindful string
+		wantErr     bool
 	}{
 		{
-			name:       "Empty content",
-			content:    "",
-			wantWexler: "",
-			wantErr:    false,
+			name:        "Empty content",
+			content:     "",
+			wantMindful: "",
+			wantErr:     false,
 		},
 		{
-			name:       "Only whitespace",
-			content:    "   \n\t  \n  ",
-			wantWexler: "",
-			wantErr:    false,
+			name:        "Only whitespace",
+			content:     "   \n\t  \n  ",
+			wantMindful: "",
+			wantErr:     false,
 		},
 		{
-			name: "WEXLER section only",
-			content: `# WEXLER
-This is the WEXLER section content.
+			name: "MINDFUL section only",
+			content: `# MINDFUL
+This is the MINDFUL section content.
 
 ## Workflow
 Use TDD approach.
 
 ## Code Style
 Follow Go conventions.`,
-			wantWexler: `This is the WEXLER section content.
+			wantMindful: `This is the MINDFUL section content.
 
 ## Workflow
 Use TDD approach.
@@ -44,11 +44,11 @@ Follow Go conventions.`,
 			wantErr: false,
 		},
 		{
-			name: "WEXLER section with other sections",
+			name: "MINDFUL section with other sections",
 			content: `# Introduction
 This is the introduction.
 
-# WEXLER
+# MINDFUL
 Main memory content here.
 
 ## Guidelines
@@ -56,29 +56,29 @@ Follow these guidelines.
 
 # Other Section
 This should be ignored.`,
-			wantWexler: `Main memory content here.
+			wantMindful: `Main memory content here.
 
 ## Guidelines
 Follow these guidelines.`,
 			wantErr: false,
 		},
 		{
-			name: "No WEXLER section",
+			name: "No MINDFUL section",
 			content: `# Introduction
 Some content here.
 
 # Other Section
 More content.`,
-			wantWexler: "",
-			wantErr:    false,
+			wantMindful: "",
+			wantErr:     false,
 		},
 		{
-			name: "WEXLER section at the end",
+			name: "MINDFUL section at the end",
 			content: `# Introduction
 Introduction content.
 
-# WEXLER
-<--- Main memory of all coding agents. Managed by wexler. DO NOT EDIT outside our wexler source directory. --->
+# MINDFUL
+<--- Main memory of all coding agents. Managed by mindful. DO NOT EDIT outside our mindful source directory. --->
 
 ## Workflow
 Prefer running single tests for performance.
@@ -88,7 +88,7 @@ Use Go conventions and direct framework usage.
 
 ## Project Context
 This is the project context and instructions for AI assistants.`,
-			wantWexler: `<--- Main memory of all coding agents. Managed by wexler. DO NOT EDIT outside our wexler source directory. --->
+			wantMindful: `<--- Main memory of all coding agents. Managed by mindful. DO NOT EDIT outside our mindful source directory. --->
 
 ## Workflow
 Prefer running single tests for performance.
@@ -101,42 +101,42 @@ This is the project context and instructions for AI assistants.`,
 			wantErr: false,
 		},
 		{
-			name: "Multiple WEXLER sections (first one wins)",
-			content: `# WEXLER
-First WEXLER section.
+			name: "Multiple MINDFUL sections (first one wins)",
+			content: `# MINDFUL
+First MINDFUL section.
 
 # Other
 Other content.
 
-# WEXLER
-Second WEXLER section.`,
-			wantWexler: "First WEXLER section.",
-			wantErr:    false,
+# MINDFUL
+Second MINDFUL section.`,
+			wantMindful: "First MINDFUL section.",
+			wantErr:     false,
 		},
 		{
-			name: "WEXLER section with trailing whitespace",
-			content: `# WEXLER
+			name: "MINDFUL section with trailing whitespace",
+			content: `# MINDFUL
 Content with spaces.   
 
 More content.  
 `,
-			wantWexler: `Content with spaces.   
+			wantMindful: `Content with spaces.   
 
 More content.`,
 			wantErr: false,
 		},
 		{
-			name: "Case sensitive WEXLER",
-			content: `# wexler
+			name: "Case sensitive MINDFUL",
+			content: `# mindful
 Lowercase should not match.
 
-# WEXLER
+# MINDFUL
 Uppercase should match.
 
-# Wexler
+# Mindful
 Mixed case should not match.`,
-			wantWexler: "Uppercase should match.",
-			wantErr:    false,
+			wantMindful: "Uppercase should match.",
+			wantErr:     false,
 		},
 	}
 
@@ -144,16 +144,16 @@ Mixed case should not match.`,
 		t.Run(tt.name, func(t *testing.T) {
 			m := models.NewMemoryConfig()
 			err := m.ParseMemoryContent(tt.content)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseMemoryContent() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
-			if m.GetWexlerMemory() != tt.wantWexler {
-				t.Errorf("ParseMemoryContent() WexlerMemory = %q, want %q", m.GetWexlerMemory(), tt.wantWexler)
+
+			if m.GetMindfulMemory() != tt.wantMindful {
+				t.Errorf("ParseMemoryContent() MindfulMemory = %q, want %q", m.GetMindfulMemory(), tt.wantMindful)
 			}
-			
+
 			// Verify that original content is preserved
 			if m.Content != tt.content {
 				t.Errorf("ParseMemoryContent() Content = %q, want %q", m.Content, tt.content)

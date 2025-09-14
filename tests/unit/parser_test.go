@@ -1,17 +1,17 @@
 package unit
 
 import (
+	"mindful/src/source"
 	"reflect"
 	"testing"
-	"wexler/src/source"
 )
 
 func TestParseMarkdownSections(t *testing.T) {
 	tests := []struct {
-		name     string
-		content  string
-		want     map[string]string
-		wantErr  bool
+		name    string
+		content string
+		want    map[string]string
+		wantErr bool
 	}{
 		{
 			name: "single section",
@@ -67,16 +67,16 @@ This content should be included.`,
 			wantErr: false,
 		},
 		{
-			name:     "empty content",
-			content:  "",
-			want:     map[string]string{},
-			wantErr:  false,
+			name:    "empty content",
+			content: "",
+			want:    map[string]string{},
+			wantErr: false,
 		},
 		{
-			name:     "only whitespace",
-			content:  "   \n\t  \n  ",
-			want:     map[string]string{},
-			wantErr:  false,
+			name:    "only whitespace",
+			content: "   \n\t  \n  ",
+			want:    map[string]string{},
+			wantErr: false,
 		},
 		{
 			name: "no sections just content",
@@ -107,8 +107,8 @@ Chinese content.
 # Section-With-Dashes_And_Underscores
 Mixed content.`,
 			want: map[string]string{
-				"Section with Symbols !@#$%":              "Content for special section.",
-				"数字和中文":                                  "Chinese content.",
+				"Section with Symbols !@#$%":          "Content for special section.",
+				"数字和中文":                               "Chinese content.",
 				"Section-With-Dashes_And_Underscores": "Mixed content.",
 			},
 			wantErr: false,
@@ -166,7 +166,7 @@ func TestReconstructMarkdown(t *testing.T) {
 		{
 			name: "sections with empty names should be skipped",
 			sections: map[string]string{
-				"":            "This should be skipped",
+				"":              "This should be skipped",
 				"Valid Section": "This should be included",
 			},
 		},
@@ -175,7 +175,7 @@ func TestReconstructMarkdown(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := source.ReconstructMarkdown(tt.sections)
-			
+
 			// For single section or empty, we can do exact match
 			if len(tt.sections) <= 1 {
 				if got != tt.want {
@@ -197,7 +197,6 @@ func TestReconstructMarkdown(t *testing.T) {
 		})
 	}
 }
-
 
 func TestSanitizeContent(t *testing.T) {
 	tests := []struct {
@@ -254,40 +253,40 @@ func TestSanitizeContent(t *testing.T) {
 
 func TestValidateSubagentContent(t *testing.T) {
 	tests := []struct {
-		name    string
-		content string
+		name      string
+		content   string
 		agentName string
-		wantErr bool
+		wantErr   bool
 	}{
 		{
-			name:    "valid subagent content",
-			content: "This is valid subagent content with instructions.",
+			name:      "valid subagent content",
+			content:   "This is valid subagent content with instructions.",
 			agentName: "planner",
-			wantErr: false,
+			wantErr:   false,
 		},
 		{
-			name:    "empty content is valid for subagents",
-			content: "",
+			name:      "empty content is valid for subagents",
+			content:   "",
 			agentName: "empty-agent",
-			wantErr: false,
+			wantErr:   false,
 		},
 		{
-			name:    "empty agent name",
-			content: "Some content",
+			name:      "empty agent name",
+			content:   "Some content",
 			agentName: "",
-			wantErr: true,
+			wantErr:   true,
 		},
 		{
-			name:    "very long content should be rejected",
-			content: generateLongString(2 * 1024 * 1024), // 2MB
+			name:      "very long content should be rejected",
+			content:   generateLongString(2 * 1024 * 1024), // 2MB
 			agentName: "large-agent",
-			wantErr: true,
+			wantErr:   true,
 		},
 		{
-			name:    "content with special characters",
-			content: "Content with émojis 🎉 and spëcial characters åäö",
+			name:      "content with special characters",
+			content:   "Content with émojis 🎉 and spëcial characters åäö",
 			agentName: "special-agent",
-			wantErr: false,
+			wantErr:   false,
 		},
 	}
 

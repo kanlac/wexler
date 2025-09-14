@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"wexler/src/models"
+	"mindful/src/models"
 )
 
 // Manager implements SourceManager interface for source configuration management
@@ -47,23 +47,23 @@ func (m *Manager) LoadSource(sourcePath string) (*models.SourceConfig, error) {
 			if err != nil {
 				return err
 			}
-			
+
 			// Process .mdc files
 			if !info.IsDir() && strings.HasSuffix(path, ".mdc") {
 				subagent, err := m.ParseSubagent(path)
 				if err != nil {
 					return fmt.Errorf("failed to parse subagent file %s: %w", path, err)
 				}
-				
+
 				// Use filename without extension as subagent name
 				name := strings.TrimSuffix(info.Name(), ".mdc")
 				subagent.Name = name
 				config.Subagents[name] = subagent
 			}
-			
+
 			return nil
 		})
-		
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to load subagent files: %w", err)
 		}
@@ -98,14 +98,14 @@ func (m *Manager) ListSourceFiles(sourcePath string) ([]string, error) {
 			if err != nil {
 				return err
 			}
-			
+
 			if !info.IsDir() && strings.HasSuffix(path, ".mdc") {
 				files = append(files, path)
 			}
-			
+
 			return nil
 		})
-		
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to list subagent files: %w", err)
 		}
@@ -132,9 +132,9 @@ func (m *Manager) ParseMemory(filePath string) (*models.MemoryConfig, error) {
 	}
 
 	content := string(data)
-	
+
 	memory := models.NewMemoryConfig()
-	
+
 	// Parse content into sections using the model's method
 	if err := memory.ParseMemoryContent(content); err != nil {
 		return nil, fmt.Errorf("failed to parse memory content: %w", err)
@@ -161,9 +161,9 @@ func (m *Manager) ParseSubagent(filePath string) (*models.SubagentConfig, error)
 	}
 
 	content := string(data)
-	
+
 	// Extract name from filename
 	name := strings.TrimSuffix(filepath.Base(filePath), ".mdc")
-	
+
 	return models.NewSubagentConfig(name, content), nil
 }

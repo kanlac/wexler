@@ -2,17 +2,17 @@ package unit
 
 import (
 	"fmt"
+	"mindful/src/apply"
+	"mindful/src/models"
+	"mindful/src/tools"
 	"testing"
-	"wexler/src/apply"
-	"wexler/src/models"
-	"wexler/src/tools"
 )
 
 func TestConflictDetection(t *testing.T) {
 	tests := []struct {
-		name         string
-		existing     []tools.ConfigFile
-		new          []tools.ConfigFile
+		name          string
+		existing      []tools.ConfigFile
+		new           []tools.ConfigFile
 		wantConflicts int
 	}{
 		{
@@ -178,9 +178,9 @@ func TestFileConflictCreation(t *testing.T) {
 		},
 		{
 			name:         "subagent file conflict",
-			filePath:     ".claude/agents/planner.wexler.md",
+			filePath:     ".claude/agents/planner.mindful.md",
 			existingHash: "hash1",
-			newHash:      "hash2", 
+			newHash:      "hash2",
 			diff:         "content changed",
 			fileType:     "subagent",
 		},

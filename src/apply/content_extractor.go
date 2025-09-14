@@ -52,9 +52,9 @@ func (e *DefaultContentExtractor) ExtractExistingContent(filePath, toolName, fil
 func (e *DefaultContentExtractor) extractClaudeContent(content, filePath, fileType string) (string, error) {
 	switch fileType {
 	case "memory":
-		// For CLAUDE.md, extract only WEXLER section content
+		// For CLAUDE.md, extract only MINDFUL section content
 		if strings.HasSuffix(filePath, "CLAUDE.md") {
-			return e.extractWexlerSection(content), nil
+			return e.extractMindfulSection(content), nil
 		}
 		return content, nil
 	case "subagent":
@@ -72,10 +72,10 @@ func (e *DefaultContentExtractor) extractClaudeContent(content, filePath, fileTy
 func (e *DefaultContentExtractor) extractCursorContent(content, filePath, fileType string) (string, error) {
 	switch fileType {
 	case "memory":
-		// For .cursor/rules/general.wexler.mdc, return entire content
+		// For .cursor/rules/general.mindful.mdc, return entire content
 		return content, nil
 	case "subagent":
-		// For .cursor/rules/*.wexler.mdc, return entire content
+		// For .cursor/rules/*.mindful.mdc, return entire content
 		return content, nil
 	case "mcp":
 		// For .cursor/mcp.json, return entire content
@@ -85,41 +85,41 @@ func (e *DefaultContentExtractor) extractCursorContent(content, filePath, fileTy
 	}
 }
 
-// extractWexlerSection extracts content under WEXLER level-1 heading
-func (e *DefaultContentExtractor) extractWexlerSection(content string) string {
+// extractMindfulSection extracts content under MINDFUL level-1 heading
+func (e *DefaultContentExtractor) extractMindfulSection(content string) string {
 	if content == "" {
 		return ""
 	}
 
 	lines := strings.Split(content, "\n")
-	var wexlerContent []string
-	var inWexlerSection bool
-	var foundWexler bool
+	var mindfulContent []string
+	var inMindfulSection bool
+	var foundMindful bool
 
 	for _, line := range lines {
 		// Check for level-1 heading
 		if strings.HasPrefix(line, "# ") {
 			sectionName := strings.TrimSpace(strings.TrimPrefix(line, "# "))
-			if strings.EqualFold(sectionName, "WEXLER") {
-				inWexlerSection = true
-				foundWexler = true
+			if strings.EqualFold(sectionName, "MINDFUL") {
+				inMindfulSection = true
+				foundMindful = true
 				continue // Skip the heading line itself
-			} else if inWexlerSection {
-				// Found another level-1 heading, exit WEXLER section
+			} else if inMindfulSection {
+				// Found another level-1 heading, exit MINDFUL section
 				break
 			}
-		} else if inWexlerSection {
-			// We're in the WEXLER section, collect content
-			wexlerContent = append(wexlerContent, line)
+		} else if inMindfulSection {
+			// We're in the MINDFUL section, collect content
+			mindfulContent = append(mindfulContent, line)
 		}
 	}
 
-	if !foundWexler {
-		return "" // No WEXLER section found, return empty
+	if !foundMindful {
+		return "" // No MINDFUL section found, return empty
 	}
 
 	// Join content and trim trailing whitespace
-	result := strings.Join(wexlerContent, "\n")
+	result := strings.Join(mindfulContent, "\n")
 	return strings.TrimRight(result, "\n\t ")
 }
 

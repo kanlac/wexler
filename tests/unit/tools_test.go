@@ -1,10 +1,10 @@
 package unit
 
 import (
+	"mindful/src/models"
+	"mindful/src/tools"
 	"strings"
 	"testing"
-	"wexler/src/models"
-	"wexler/src/tools"
 )
 
 func TestCursorFileGeneration(t *testing.T) {
@@ -18,11 +18,11 @@ func TestCursorFileGeneration(t *testing.T) {
 			config: &tools.ToolConfig{
 				ToolName: "cursor",
 				Memory: &models.MemoryConfig{
-					WexlerMemory: "This is test memory content.",
+					MindfulMemory: "This is test memory content.",
 				},
 			},
 			expected: map[string]string{
-				".cursor/rules/general.wexler.mdc": "---\ndescription: General Memories\nglobs:\nalwaysApply: true\n---\n\nThis is test memory content.",
+				".cursor/rules/general.mindful.mdc": "---\ndescription: General Memories\nglobs:\nalwaysApply: true\n---\n\nThis is test memory content.",
 			},
 		},
 		{
@@ -37,7 +37,7 @@ func TestCursorFileGeneration(t *testing.T) {
 				},
 			},
 			expected: map[string]string{
-				".cursor/rules/test-agent.wexler.mdc": "---\ndescription: Test Agent\nglobs:\nalwaysApply: true\n---\n\n# Test Agent\n\nThis is a test subagent with a title.",
+				".cursor/rules/test-agent.mindful.mdc": "---\ndescription: Test Agent\nglobs:\nalwaysApply: true\n---\n\n# Test Agent\n\nThis is a test subagent with a title.",
 			},
 		},
 		{
@@ -52,7 +52,7 @@ func TestCursorFileGeneration(t *testing.T) {
 				},
 			},
 			expected: map[string]string{
-				".cursor/rules/plain-agent.wexler.mdc": "---\ndescription: plain-agent\nglobs:\nalwaysApply: true\n---\n\nThis is a test subagent without any title.",
+				".cursor/rules/plain-agent.mindful.mdc": "---\ndescription: plain-agent\nglobs:\nalwaysApply: true\n---\n\nThis is a test subagent without any title.",
 			},
 		},
 		{
@@ -60,7 +60,7 @@ func TestCursorFileGeneration(t *testing.T) {
 			config: &tools.ToolConfig{
 				ToolName: "cursor",
 				Memory: &models.MemoryConfig{
-					WexlerMemory: "General memory content.",
+					MindfulMemory: "General memory content.",
 				},
 				Subagents: []*models.SubagentConfig{
 					{
@@ -79,10 +79,10 @@ func TestCursorFileGeneration(t *testing.T) {
 				},
 			},
 			expected: map[string]string{
-				".cursor/rules/general.wexler.mdc":  "---\ndescription: General Memories\nglobs:\nalwaysApply: true\n---\n\nGeneral memory content.",
-				".cursor/rules/frontend.wexler.mdc": "---\ndescription: Frontend Agent\nglobs:\nalwaysApply: true\n---\n\n# Frontend Agent\n\nHandles React components.",
-				".cursor/rules/backend.wexler.mdc":  "---\ndescription: backend\nglobs:\nalwaysApply: true\n---\n\nHandles Go backend logic.",
-				".cursor/mcp.json":                  "{\n  \"mcpServers\": {\n    \"context7\": {\n      \"command\": \"python\"\n    }\n  }\n}",
+				".cursor/rules/general.mindful.mdc":  "---\ndescription: General Memories\nglobs:\nalwaysApply: true\n---\n\nGeneral memory content.",
+				".cursor/rules/frontend.mindful.mdc": "---\ndescription: Frontend Agent\nglobs:\nalwaysApply: true\n---\n\n# Frontend Agent\n\nHandles React components.",
+				".cursor/rules/backend.mindful.mdc":  "---\ndescription: backend\nglobs:\nalwaysApply: true\n---\n\nHandles Go backend logic.",
+				".cursor/mcp.json":                   "{\n  \"mcpServers\": {\n    \"context7\": {\n      \"command\": \"python\"\n    }\n  }\n}",
 			},
 		},
 	}
@@ -118,7 +118,7 @@ func TestCursorFileGeneration(t *testing.T) {
 				}
 
 				if actualContent != expectedContent {
-					t.Errorf("File %s content mismatch:\nExpected:\n%s\n\nActual:\n%s", 
+					t.Errorf("File %s content mismatch:\nExpected:\n%s\n\nActual:\n%s",
 						expectedPath, expectedContent, actualContent)
 				}
 			}
@@ -202,7 +202,7 @@ func TestExtractDescriptionFromContent(t *testing.T) {
 			content := files[0].Content
 			expectedDescLine := "description: " + tt.expected
 			if !strings.Contains(content, expectedDescLine) {
-				t.Errorf("Expected description '%s' not found in content:\n%s", 
+				t.Errorf("Expected description '%s' not found in content:\n%s",
 					expectedDescLine, content)
 			}
 		})
@@ -258,7 +258,7 @@ Content with leading/trailing whitespace.`,
 			config := &tools.ToolConfig{
 				ToolName: "cursor",
 				Memory: &models.MemoryConfig{
-					WexlerMemory: tt.content,
+					MindfulMemory: tt.content,
 				},
 			}
 
@@ -272,7 +272,7 @@ Content with leading/trailing whitespace.`,
 			}
 
 			if tt.expectFiles > 0 && files[0].Content != tt.expected {
-				t.Errorf("Content mismatch:\nExpected:\n%s\n\nActual:\n%s", 
+				t.Errorf("Content mismatch:\nExpected:\n%s\n\nActual:\n%s",
 					tt.expected, files[0].Content)
 			}
 		})

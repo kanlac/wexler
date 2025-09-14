@@ -3,8 +3,8 @@ package unit
 import (
 	"encoding/base64"
 	"encoding/json"
+	"mindful/src/models"
 	"testing"
-	"wexler/src/models"
 )
 
 func TestMCPConfigEncoding(t *testing.T) {
@@ -88,9 +88,9 @@ func TestMCPConfigEncoding(t *testing.T) {
 
 func TestBase64EncodingDecoding(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		wantErr  bool
+		name    string
+		input   string
+		wantErr bool
 	}{
 		{
 			name:    "simple JSON",
@@ -275,7 +275,7 @@ func TestMCPJSONConversion(t *testing.T) {
 
 				// Verify server count matches
 				if len(parsedConfig.ListServers()) != len(tt.servers) {
-					t.Errorf("Server count mismatch. Got %d, want %d", 
+					t.Errorf("Server count mismatch. Got %d, want %d",
 						len(parsedConfig.ListServers()), len(tt.servers))
 				}
 			}

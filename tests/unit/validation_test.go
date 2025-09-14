@@ -1,9 +1,9 @@
 package unit
 
 import (
+	"mindful/src/config"
+	"mindful/src/models"
 	"testing"
-	"wexler/src/config"
-	"wexler/src/models"
 )
 
 func TestProjectConfigValidation(t *testing.T) {
@@ -15,9 +15,9 @@ func TestProjectConfigValidation(t *testing.T) {
 		{
 			name: "valid complete configuration",
 			config: &models.ProjectConfig{
-				Name:        "test-project",
-				Version:     "1.0.0",
-				SourcePath:  "source",
+				Name:       "test-project",
+				Version:    "1.0.0",
+				SourcePath: "source",
 				Tools: map[string]string{
 					"claude": "enabled",
 					"cursor": "disabled",
@@ -28,37 +28,37 @@ func TestProjectConfigValidation(t *testing.T) {
 		{
 			name: "missing project name",
 			config: &models.ProjectConfig{
-				Version:     "1.0.0",
-				SourcePath:  "source",
-				Tools:       map[string]string{"claude": "enabled"},
+				Version:    "1.0.0",
+				SourcePath: "source",
+				Tools:      map[string]string{"claude": "enabled"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid version format",
 			config: &models.ProjectConfig{
-				Name:        "test-project",
-				Version:     "invalid-version",
-				SourcePath:  "source",
-				Tools:       map[string]string{"claude": "enabled"},
+				Name:       "test-project",
+				Version:    "invalid-version",
+				SourcePath: "source",
+				Tools:      map[string]string{"claude": "enabled"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing source path",
 			config: &models.ProjectConfig{
-				Name:        "test-project",
-				Version:     "1.0.0",
-				Tools:       map[string]string{"claude": "enabled"},
+				Name:    "test-project",
+				Version: "1.0.0",
+				Tools:   map[string]string{"claude": "enabled"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid tool status",
 			config: &models.ProjectConfig{
-				Name:        "test-project",
-				Version:     "1.0.0",
-				SourcePath:  "source",
+				Name:       "test-project",
+				Version:    "1.0.0",
+				SourcePath: "source",
 				Tools: map[string]string{
 					"claude": "maybe",
 				},
@@ -68,9 +68,9 @@ func TestProjectConfigValidation(t *testing.T) {
 		{
 			name: "unsupported tool",
 			config: &models.ProjectConfig{
-				Name:        "test-project",
-				Version:     "1.0.0",
-				SourcePath:  "source",
+				Name:       "test-project",
+				Version:    "1.0.0",
+				SourcePath: "source",
 				Tools: map[string]string{
 					"unsupported-tool": "enabled",
 				},
@@ -215,9 +215,9 @@ func TestToolConfigurationValidation(t *testing.T) {
 		{
 			name: "valid tool configuration",
 			config: &models.ProjectConfig{
-				Name:        "test",
-				Version:     "1.0.0",
-				SourcePath:  "source",
+				Name:       "test",
+				Version:    "1.0.0",
+				SourcePath: "source",
 				Tools: map[string]string{
 					"claude": "enabled",
 					"cursor": "disabled",
@@ -228,29 +228,29 @@ func TestToolConfigurationValidation(t *testing.T) {
 		{
 			name: "empty tools map",
 			config: &models.ProjectConfig{
-				Name:        "test",
-				Version:     "1.0.0",
-				SourcePath:  "source",
-				Tools:       map[string]string{},
+				Name:       "test",
+				Version:    "1.0.0",
+				SourcePath: "source",
+				Tools:      map[string]string{},
 			},
 			wantErr: false,
 		},
 		{
 			name: "nil tools map",
 			config: &models.ProjectConfig{
-				Name:        "test",
-				Version:     "1.0.0",
-				SourcePath:  "source",
-				Tools:       nil,
+				Name:       "test",
+				Version:    "1.0.0",
+				SourcePath: "source",
+				Tools:      nil,
 			},
 			wantErr: false,
 		},
 		{
 			name: "unsupported tool",
 			config: &models.ProjectConfig{
-				Name:        "test",
-				Version:     "1.0.0",
-				SourcePath:  "source",
+				Name:       "test",
+				Version:    "1.0.0",
+				SourcePath: "source",
 				Tools: map[string]string{
 					"invalid-tool": "enabled",
 				},
@@ -260,9 +260,9 @@ func TestToolConfigurationValidation(t *testing.T) {
 		{
 			name: "invalid tool status",
 			config: &models.ProjectConfig{
-				Name:        "test",
-				Version:     "1.0.0",
-				SourcePath:  "source",
+				Name:       "test",
+				Version:    "1.0.0",
+				SourcePath: "source",
 				Tools: map[string]string{
 					"claude": "maybe",
 				},

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Wexler** is an AI Configuration Management Tool that unifies AI assistant configurations across multiple tools (Claude Code, Cursor). It maintains a single source of configuration truth that syncs across different AI tools, preventing configuration fragmentation and ensuring team consistency.
+**Mindful** is an AI Configuration Management Tool that unifies AI assistant configurations across multiple tools (Claude Code, Cursor). It maintains a single source of configuration truth that syncs across different AI tools, preventing configuration fragmentation and ensuring team consistency.
 
 ## Current Status
 
@@ -13,17 +13,17 @@ This project is in the **specification and planning phase**. All implementation 
 ## Core CLI Commands (To Be Implemented)
 
 ```bash
-# Initialize Wexler in project directory
-wexler init [--source=/path/to/configs]
+# Initialize Mindful in project directory
+mindful init [--source=/path/to/configs]
 
 # Import existing AI tool configurations to central storage
-wexler import [--tool=claude|cursor] [--dry-run]
+mindful import [--tool=claude|cursor] [--dry-run]
 
 # Apply configurations from source to AI tools
-wexler apply [--tool=claude|cursor] [--force] [--dry-run]
+mindful apply [--tool=claude|cursor] [--force] [--dry-run]
 
 # List all managed configurations
-wexler list [--mcp] [--tools] [--format=table|json|yaml]
+mindful list [--mcp] [--tools] [--format=table|json|yaml]
 ```
 
 ## Architecture
@@ -37,7 +37,7 @@ wexler list [--mcp] [--tools] [--format=table|json|yaml]
 ### Library-First Architecture
 Every feature is implemented as a library with CLI wrapper:
 
-- **config/**: Project configuration management (wexler.yaml)
+- **config/**: Project configuration management (mindful.yaml)
 - **source/**: Source directory operations (memory.mdc, subagent/*.mdc)
 - **storage/**: BoltDB operations for MCP configurations
 - **tools/**: AI tool adapters (Claude Code, Cursor)
@@ -60,7 +60,7 @@ tests/
 └── unit/                # Unit tests per library
 
 cmd/
-└── wexler/             # Main CLI entry point
+└── mindful/             # Main CLI entry point
 ```
 
 ### Data Flow
@@ -82,9 +82,9 @@ cmd/
 - **Progressive conflict handling**: Display differences, get user choice, continue or halt
 
 ### File Generation Patterns
-- **Claude Code**: CLAUDE.md (section-based), .claude/agents/*.wexler.md (full file), .mcp.json
-- **Cursor**: .cursor/rules/general.wexler.mdc, .cursor/rules/{subagent}.wexler.mdc (full file), .cursor/mcp.json
-- **Wexler-managed files**: Use .wexler extensions to identify managed content
+- **Claude Code**: CLAUDE.md (section-based), .claude/agents/*.mindful.md (full file), .mcp.json
+- **Cursor**: .cursor/rules/general.mindful.mdc, .cursor/rules/{subagent}.mindful.mdc (full file), .cursor/mcp.json
+- **Mindful-managed files**: Use .mindful extensions to identify managed content
 
 ### Security Requirements
 - Base64 encoding for sensitive data (MVP approach)
@@ -100,7 +100,7 @@ cmd/
 4. No implementation before failing tests
 
 ### Validation Scenarios
-- 5-minute setup: `wexler init` → `wexler apply` workflow
+- 5-minute setup: `mindful init` → `mindful apply` workflow
 - Cross-tool consistency verification
 - Conflict resolution workflows
 - Team configuration sharing
@@ -110,7 +110,7 @@ cmd/
 ### Build and Test (When Implemented)
 ```bash
 # Build CLI tool
-go build -o bin/wexler cmd/wexler/main.go
+go build -o bin/mindful cmd/mindful/main.go
 
 # Run tests (TDD approach)
 go test ./tests/contract/...    # Contract tests first

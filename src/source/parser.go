@@ -13,7 +13,7 @@ func ParseMarkdownSections(content string) (map[string]string, error) {
 
 	sections := make(map[string]string)
 	lines := strings.Split(content, "\n")
-	
+
 	var currentSection string
 	var currentContent []string
 
@@ -26,7 +26,7 @@ func ParseMarkdownSections(content string) (map[string]string, error) {
 				// Trim trailing whitespace but preserve leading whitespace
 				sections[currentSection] = strings.TrimRight(content, " \t\n\r")
 			}
-			
+
 			// Start new section
 			currentSection = strings.TrimPrefix(line, "# ")
 			currentSection = strings.TrimSpace(currentSection)
@@ -37,7 +37,7 @@ func ParseMarkdownSections(content string) (map[string]string, error) {
 		}
 		// Lines before any section header are ignored
 	}
-	
+
 	// Save final section
 	if currentSection != "" {
 		content := strings.Join(currentContent, "\n")
@@ -48,8 +48,8 @@ func ParseMarkdownSections(content string) (map[string]string, error) {
 	return sections, nil
 }
 
-// ParseWexlerMemory parses memory.mdc and returns only the WEXLER section content
-func ParseWexlerMemory(content string) string {
+// ParseMindfulMemory parses memory.mdc and returns only the MINDFUL section content
+func ParseMindfulMemory(content string) string {
 	if content == "" {
 		return ""
 	}
@@ -59,12 +59,12 @@ func ParseWexlerMemory(content string) string {
 		return ""
 	}
 
-	wexlerContent, exists := sections["WEXLER"]
+	mindfulContent, exists := sections["MINDFUL"]
 	if !exists {
 		return ""
 	}
 
-	return wexlerContent
+	return mindfulContent
 }
 
 // ReconstructMarkdown reconstructs markdown content from sections
@@ -84,25 +84,24 @@ func ReconstructMarkdown(sections map[string]string) string {
 	return strings.Join(parts, "\n\n")
 }
 
-
 // ExtractMetadata extracts metadata from subagent file content
 func ExtractMetadata(content string) map[string]string {
 	metadata := make(map[string]string)
-	
+
 	lines := strings.Split(content, "\n")
-	
+
 	// Look for metadata in the first few lines
 	for i, line := range lines {
 		if i > 10 { // Only check first 10 lines
 			break
 		}
-		
+
 		line = strings.TrimSpace(line)
-		
+
 		// Look for key: value patterns in comments
 		if strings.HasPrefix(line, "<!--") && strings.HasSuffix(line, "-->") {
 			comment := strings.TrimSpace(line[4 : len(line)-3])
-			
+
 			if strings.Contains(comment, ":") {
 				parts := strings.SplitN(comment, ":", 2)
 				if len(parts) == 2 {
@@ -113,7 +112,7 @@ func ExtractMetadata(content string) map[string]string {
 			}
 		}
 	}
-	
+
 	return metadata
 }
 
@@ -121,11 +120,11 @@ func ExtractMetadata(content string) map[string]string {
 func SanitizeContent(content string) string {
 	// Remove null bytes
 	content = strings.ReplaceAll(content, "\x00", "")
-	
+
 	// Normalize line endings
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 	content = strings.ReplaceAll(content, "\r", "\n")
-	
+
 	return content
 }
 
@@ -134,19 +133,19 @@ func ValidateSubagentContent(content string, name string) error {
 	if name == "" {
 		return fmt.Errorf("subagent name cannot be empty")
 	}
-	
+
 	// Content can be empty for subagents
 	if content == "" {
 		return nil
 	}
-	
+
 	// Sanitize first
 	content = SanitizeContent(content)
-	
+
 	// Check for reasonable content length
 	if len(content) > 1024*1024 { // 1MB limit
 		return fmt.Errorf("subagent content too large (max 1MB)")
 	}
-	
+
 	return nil
 }

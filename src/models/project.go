@@ -8,15 +8,15 @@ import (
 )
 
 const (
-	DefaultWexlerSource    = "~/.wexler"
-	DefaultStorageFileName = "wexler.db"
+	DefaultMindfulSource   = "~/.mindful"
+	DefaultStorageFileName = "mindful.db"
 )
 
-// ProjectConfig represents the main project configuration (wexler.yaml)
+// ProjectConfig represents the main project configuration (mindful.yaml)
 type ProjectConfig struct {
 	Name       string            `yaml:"name" json:"name"`
 	Version    string            `yaml:"version" json:"version"`
-	SourcePath string            `yaml:"source_path" json:"source_path"` // 指向全局配置源，如 "~/.wexler"
+	SourcePath string            `yaml:"source_path" json:"source_path"` // 指向全局配置源，如 "~/.mindful"
 	Tools      map[string]string `yaml:"tools" json:"tools"`
 }
 
@@ -25,7 +25,7 @@ type ProjectConfig struct {
 // 	return &ProjectConfig{
 // 		Name:       name,
 // 		Version:    "1.0.0",
-// 		SourcePath: DefaultWexlerSource,
+// 		SourcePath: DefaultMindfulSource,
 // 		Tools:      map[string]string{},
 // 	}
 // }
@@ -51,7 +51,7 @@ func (p *ProjectConfig) Validate() error {
 	return nil
 }
 
-// GetAbsoluteSourcePath returns the absolute path to the global wexler source directory
+// GetAbsoluteSourcePath returns the absolute path to the global mindful source directory
 func (p *ProjectConfig) GetAbsoluteSourcePath() (string, error) {
 	// Handle ~ prefix for user home directory
 	if strings.HasPrefix(p.SourcePath, "~") {
@@ -59,23 +59,23 @@ func (p *ProjectConfig) GetAbsoluteSourcePath() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("cannot determine user home directory: %w", err)
 		}
-		
+
 		if p.SourcePath == "~" {
 			return homeDir, nil
 		} else if strings.HasPrefix(p.SourcePath, "~/") {
 			return filepath.Join(homeDir, strings.TrimPrefix(p.SourcePath, "~/")), nil
 		}
 	}
-	
+
 	if filepath.IsAbs(p.SourcePath) {
 		return p.SourcePath, nil
 	}
-	
+
 	// 拒绝相对路径
 	return "", fmt.Errorf("source path must be absolute or use ~ prefix, got: %s", p.SourcePath)
 }
 
-// GetDatabasePath returns the path to the wexler database file
+// GetDatabasePath returns the path to the mindful database file
 func (p *ProjectConfig) GetDatabasePath() (string, error) {
 	sourceAbs, err := p.GetAbsoluteSourcePath()
 	if err != nil {

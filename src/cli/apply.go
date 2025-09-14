@@ -5,8 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"mindful/src/models"
+
 	"github.com/spf13/cobra"
-	"wexler/src/models"
 )
 
 var (
@@ -24,21 +25,21 @@ Reads memory.mdc and subagent/*.mdc files from the source directory and generate
 appropriate configuration files for the target AI tool. Handles conflict detection
 and provides interactive resolution options.`,
 		Example: `  # Apply to Claude Code
-  wexler apply --tool=claude
+  mindful apply --tool=claude
 
   # Apply to Cursor
-  wexler apply --tool=cursor
+  mindful apply --tool=cursor
 
   # Apply to all tools (dry run)
-  wexler apply --dry-run
+  mindful apply --dry-run
 
   # Apply with custom source directory
-  wexler apply --tool=claude --source=./custom-source`,
+  mindful apply --tool=claude --source=./custom-source`,
 		RunE: runApply,
 	}
 
 	cmd.Flags().StringVarP(&applyTool, "tool", "t", "", "target tool (claude, cursor, or 'all')")
-	cmd.Flags().StringVar(&applySource, "source", "", "source directory (default: from wexler.yaml)")
+	cmd.Flags().StringVar(&applySource, "source", "", "source directory (default: from mindful.yaml)")
 
 	return cmd
 }
@@ -114,7 +115,7 @@ func runApply(cmd *cobra.Command, args []string) error {
 	// Apply to each tool
 	for _, toolName := range tools {
 		toolName = strings.TrimSpace(toolName)
-		
+
 		if verbose {
 			fmt.Printf("Applying configuration to %s...\n", toolName)
 		}
@@ -155,7 +156,7 @@ func runApply(cmd *cobra.Command, args []string) error {
 				case models.ContinueAll:
 					fmt.Printf("✓ Continuing with all conflicts for %s...\n", toolName)
 					applyConfig.Force = true // Force this specific application
-					force = true // Set global force for remaining tools
+					force = true             // Set global force for remaining tools
 				}
 			} else if len(conflicts) > 0 && dryRun {
 				// In dry run mode, just show conflicts as warnings

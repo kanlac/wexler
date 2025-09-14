@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"wexler/src/models"
+	"mindful/src/models"
 )
 
 // ValidateProjectStructure validates the project directory structure

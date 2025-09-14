@@ -6,13 +6,13 @@ import (
 	"os"
 	"strings"
 
-	"wexler/src/models"
+	"mindful/src/models"
 )
 
 // promptUser prompts the user for conflict resolution with detailed information
 func promptUser(conflicts []*models.FileConflict, toolName string) (models.ConflictResolution, error) {
 	fmt.Printf("\n⚠️  Found %d conflict(s) for %s:\n", len(conflicts), toolName)
-	
+
 	// Display detailed conflict information
 	for i, conflict := range conflicts {
 		fmt.Printf("\n%d. File: %s (%s)\n", i+1, conflict.FilePath, conflict.FileType)

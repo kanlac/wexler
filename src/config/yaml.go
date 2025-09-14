@@ -63,7 +63,7 @@ func SaveYAML(filePath string, data interface{}) error {
 	return nil
 }
 
-// CreateDefaultConfig creates a default wexler.yaml configuration file
+// CreateDefaultConfig creates a default mindful.yaml configuration file
 // func CreateDefaultConfig(projectPath, projectName string) error {
 // 	if projectPath == "" {
 // 		return fmt.Errorf("project path cannot be empty")
@@ -73,8 +73,8 @@ func SaveYAML(filePath string, data interface{}) error {
 // 	}
 
 // 	config := models.DefaultProjectConfig(projectName)
-	
-// 	configPath := filepath.Join(projectPath, "wexler.yaml")
+
+// 	configPath := filepath.Join(projectPath, "mindful.yaml")
 // 	return SaveYAML(configPath, config)
 // }
 
@@ -84,16 +84,16 @@ func BackupConfig(projectPath string) error {
 		return fmt.Errorf("project path cannot be empty")
 	}
 
-	configPath := filepath.Join(projectPath, "wexler.yaml")
-	
+	configPath := filepath.Join(projectPath, "mindful.yaml")
+
 	// Check if config exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return fmt.Errorf("no wexler.yaml found to backup")
+		return fmt.Errorf("no mindful.yaml found to backup")
 	}
 
 	// Create backup with timestamp
 	backupPath := configPath + ".backup"
-	
+
 	// Read original
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -114,9 +114,9 @@ func RestoreConfig(projectPath string) error {
 		return fmt.Errorf("project path cannot be empty")
 	}
 
-	configPath := filepath.Join(projectPath, "wexler.yaml")
+	configPath := filepath.Join(projectPath, "mindful.yaml")
 	backupPath := configPath + ".backup"
-	
+
 	// Check if backup exists
 	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
 		return fmt.Errorf("no backup found at %s", backupPath)

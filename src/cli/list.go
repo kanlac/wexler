@@ -19,21 +19,21 @@ func newListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all managed configurations",
-		Long: `List all configurations managed by Wexler.
+		Long: `List all configurations managed by Mindful.
 
 Shows project configuration, source files, MCP server configurations,
 and tool status in various output formats.`,
 		Example: `  # List all configurations
-  wexler list
+  mindful list
 
   # List only MCP configurations
-  wexler list --mcp
+  mindful list --mcp
 
   # List only tool configurations
-  wexler list --tools
+  mindful list --tools
 
   # Output in JSON format
-  wexler list --format=json`,
+  mindful list --format=json`,
 		RunE: runList,
 	}
 

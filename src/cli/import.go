@@ -5,8 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"mindful/src/models"
+
 	"github.com/spf13/cobra"
-	"wexler/src/models"
 )
 
 var (
@@ -17,18 +18,18 @@ func newImportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import",
 		Short: "Import existing AI tool configurations to central storage",
-		Long: `Import existing AI tool configurations into Wexler's central storage.
+		Long: `Import existing AI tool configurations into Mindful's central storage.
 
 Scans the project directory for existing AI tool configuration files (like .mcp.json)
-and imports them into Wexler's secure storage for unified management.`,
+and imports them into Mindful's secure storage for unified management.`,
 		Example: `  # Import from Claude Code
-  wexler import --tool=claude
+  mindful import --tool=claude
 
   # Import from Cursor
-  wexler import --tool=cursor
+  mindful import --tool=cursor
 
   # Import from all tools with dry run
-  wexler import --dry-run`,
+  mindful import --dry-run`,
 		RunE: runImport,
 	}
 
@@ -70,7 +71,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 	}
 
 	importCount := 0
-	
+
 	for _, toolName := range tools {
 		if verbose {
 			fmt.Printf("Importing configurations from %s...\n", toolName)
@@ -91,7 +92,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 		// Import MCP configurations
 		for _, mcpPath := range mcpPaths {
 			fullPath := filepath.Join(ctx.ProjectPath, mcpPath)
-			
+
 			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 				if verbose {
 					fmt.Printf("   No MCP config found at %s\n", mcpPath)
@@ -165,8 +166,8 @@ func runImport(cmd *cobra.Command, args []string) error {
 		} else {
 			fmt.Printf("\n✅ Successfully imported %d configuration(s)\n", importCount)
 			fmt.Printf("\nNext steps:\n")
-			fmt.Printf("  1. Review imported configurations with 'wexler list'\n")
-			fmt.Printf("  2. Apply configurations with 'wexler apply'\n")
+			fmt.Printf("  1. Review imported configurations with 'mindful list'\n")
+			fmt.Printf("  2. Apply configurations with 'mindful apply'\n")
 		}
 	} else {
 		fmt.Printf("ℹ️  No configurations found to import\n")

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"wexler/src/apply"
-	"wexler/src/config"
-	"wexler/src/source"
-	"wexler/src/storage"
-	"wexler/src/tools"
+	"mindful/src/apply"
+	"mindful/src/config"
+	"mindful/src/source"
+	"mindful/src/storage"
+	"mindful/src/tools"
 
 	"github.com/spf13/cobra"
 )
@@ -23,24 +23,24 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "wexler",
+	Use:   "mindful",
 	Short: "AI Configuration Management Tool",
-	Long: `Wexler is a unified AI assistant configuration management tool that maintains 
+	Long: `Mindful is a unified AI assistant configuration management tool that maintains 
 a single source of configuration truth across multiple AI tools (Claude Code, Cursor).
 
 It prevents configuration fragmentation and ensures team consistency by syncing
 configurations from a central source directory to various AI tools.`,
-	Example: `  # Initialize Wexler in current directory
-  wexler init
+	Example: `  # Initialize Mindful in current directory
+  mindful init
 
   # Apply configurations to Claude Code
-  wexler apply --tool=claude
+  mindful apply --tool=claude
 
   # Import existing configurations
-  wexler import --tool=cursor
+  mindful import --tool=cursor
 
   # List all managed configurations
-  wexler list`,
+  mindful list`,
 }
 
 // Application context holds shared managers
