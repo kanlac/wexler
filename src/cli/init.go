@@ -113,7 +113,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	memoryPath := filepath.Join(sourcePath, "memory.mdc")
 	if _, err := os.Stat(memoryPath); os.IsNotExist(err) {
 		sampleMemory := `# MINDFUL
-<--- Main memory of all coding agents. Managed by mindful. DO NOT EDIT outside our mindful source directory. --->
+<--- Long-term memory of all coding agents. Managed by Mindful. DO NOT EDIT outside of mindful source directory. --->
 
 ## Workflow
 Prefer running single tests for performance.

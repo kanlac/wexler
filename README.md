@@ -12,6 +12,7 @@
 
 Mindful 通过统一的配置源和自动化同步机制，将您精心维护的 AI 长期记忆、Subagents (Roles) 以及 MCP 配置，与特定 AI 工具解耦，实现"一次配置，多处使用"。
 
+
 ## 核心价值
 
 - **配置统一化**：解决配置碎片化问题，建立单一配置源，支持以下配置类型：
@@ -187,3 +188,44 @@ tools:
     - Web UI 管理界面
 3. **Phase 4**（企业特性）
     - 针对 MCP API key 等敏感数据做加密存储（如 AES-256）
+
+# A Proposal：我们应如何管理 AI 长期记忆？
+
+## 核心理念/最佳实践
+
+- 所有长期记忆/上下文都不应与具体工具耦合，记忆应该只按 scope 分类管理，实现一处定义，随处使用
+- 具体 AI 配置文件都应加入 .gitignore，因为它们都将是 mindful 生成文件，人们只需要维护和迭代记忆本身
+
+## Scope 分类体系
+
+### 1. scope: team
+跨项目共享的整体规范和 subagent，团队成员维护一个 git 仓库作为 mindful source。
+
+- 长期记忆
+  - 源：`mindful_source/memory.mdc`
+  - 目标：
+    - Claude Code: `project_dir/CLAUDE.md#'Mindful Memory (scope: team)'`
+- subagent
+  - 源：`mindful_source/subagent/*.mdc`
+  - 目标：
+    - Claude Code: `project_dir/.claude/agents/`
+- MCP
+
+### 2. scope: project
+属于当前仓库的业务知识编码规范等，。
+
+- 长期记忆
+  - 源：开发者维护 `project_dir/memory.mdc`
+  - 目标：
+    - Claude Code: `project_dir/CLAUDE.md#'Mindful Memory (scope: project)'`
+- subagent
+- MCP
+
+### 3. scope: user
+
+- 长期记忆
+  - 源：用户个人维护的 `~/.mindful/memory.mdc`
+  - 目标：
+    - Claude Code: `project_dir/CLAUDE.md#'Mindful Memory (scope: user)'`
+- subagent
+- MCP
