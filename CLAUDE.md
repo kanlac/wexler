@@ -63,11 +63,41 @@ cmd/
 └── mindful/             # Main CLI entry point
 ```
 
-### Data Flow
+### Data Flow & Directory Structure Understanding
+
+**Critical Architecture Distinction:**
+
+1. **User Project Structure** (what Mindful manages):
+   ```
+   用户项目/
+   ├── mindful.yaml
+   └── mindful/              # Project scope configurations
+       ├── memory.mdc        # Project-specific memory
+       └── subagents/        # Project-specific subagents
+   ```
+
+2. **External Source Directory** (team shared configs):
+   ```
+   /path/to/source/          # Team scope configurations (outside project)
+   ├── memory.mdc           # Team-wide memory
+   └── subagents/           # Team-wide subagents
+   ```
+
+**mindful apply Dual-Scope Processing:**
+1. Parse **external source/memory.mdc** (team scope)
+2. Parse **project mindful/memory.mdc** (project scope)
+3. Merge both into final tool configurations with clear scope labeling:
+   ```markdown
+   # Mindful Memory (scope: team)
+   [content from external source/memory.mdc]
+
+   # Mindful Memory (scope: project)
+   [content from project mindful/memory.mdc]
+   ```
 
 **Memory vs Subagent Configuration Handling:**
-- **Memory configurations** (memory.mdc): Parsed by markdown sections, merged into existing tool configurations using section-based approach
-- **Subagent configurations** (subagent/*.mdc): Applied as entire file replacements, no section parsing
+- **Memory configurations**: Parsed by markdown sections, merged with dual-scope structure
+- **Subagent configurations**: Applied as entire file replacements, no section parsing
 
 **MCP Configuration Storage:**
 - Stored as `map[string]string` where key = server name, value = base64 encoded JSON
