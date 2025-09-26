@@ -48,24 +48,6 @@ func ParseMarkdownSections(content string) (map[string]string, error) {
 	return sections, nil
 }
 
-// ParseMindfulMemory parses memory.mdc and returns only the MINDFUL section content
-func ParseMindfulMemory(content string) string {
-	if content == "" {
-		return ""
-	}
-
-	sections, err := ParseMarkdownSections(content)
-	if err != nil {
-		return ""
-	}
-
-	mindfulContent, exists := sections["MINDFUL"]
-	if !exists {
-		return ""
-	}
-
-	return mindfulContent
-}
 
 // ReconstructMarkdown reconstructs markdown content from sections
 func ReconstructMarkdown(sections map[string]string) string {

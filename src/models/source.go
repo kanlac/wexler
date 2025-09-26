@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"strings"
 )
 
 // SourceConfig represents the complete source configuration
@@ -11,11 +10,15 @@ type SourceConfig struct {
 	Subagents map[string]*SubagentConfig `yaml:"subagents" json:"subagents"`
 }
 
-// MemoryConfig represents memory configuration parsed from memory.mdc
-// Only the MINDFUL section content is extracted and used
+// MemoryConfig represents memory configuration parsed from memory.mdc files
+// Supports dual-scope structure: team (external source) and project (local mindful/)
 type MemoryConfig struct {
-	Content       string `yaml:"content" json:"content"`               // raw file content
-	MindfulMemory string `yaml:"mindful_memory" json:"mindful_memory"` // MINDFUL section content only
+	TeamContent        string `yaml:"team_content" json:"team_content"`               // external source/memory.mdc content
+	ProjectContent     string `yaml:"project_content" json:"project_content"`         // project mindful/memory.mdc content
+	HasTeam            bool   `yaml:"has_team" json:"has_team"`                       // team-level file exists
+	HasProject         bool   `yaml:"has_project" json:"has_project"`                 // project-level file exists
+	TeamSourcePath     string `yaml:"team_source_path" json:"team_source_path"`       // team config source path (for marking)
+	ProjectSourcePath  string `yaml:"project_source_path" json:"project_source_path"` // project config source path (for marking)
 }
 
 // SubagentConfig represents subagent configuration from subagent/*.mdc files
@@ -28,7 +31,7 @@ type SubagentConfig struct {
 // NewSourceConfig creates a new empty source configuration
 func NewSourceConfig() *SourceConfig {
 	return &SourceConfig{
-		Memory:    NewMemoryConfig(),
+		Memory:    nil, // Will be set only if memory files exist
 		Subagents: make(map[string]*SubagentConfig),
 	}
 }
@@ -36,8 +39,12 @@ func NewSourceConfig() *SourceConfig {
 // NewMemoryConfig creates a new empty memory configuration
 func NewMemoryConfig() *MemoryConfig {
 	return &MemoryConfig{
-		Content:       "",
-		MindfulMemory: "",
+		TeamContent:       "",
+		ProjectContent:    "",
+		HasTeam:           false,
+		HasProject:        false,
+		TeamSourcePath:    "",
+		ProjectSourcePath: "",
 	}
 }
 
@@ -49,54 +56,6 @@ func NewSubagentConfig(name, content string) *SubagentConfig {
 	}
 }
 
-// ParseMemoryContent parses markdown content and extracts only the MINDFUL section
-func (m *MemoryConfig) ParseMemoryContent(content string) error {
-	m.Content = content
-
-	if strings.TrimSpace(content) == "" {
-		m.MindfulMemory = ""
-		return nil // Empty file is valid
-	}
-
-	// Parse content and extract MINDFUL section (first one wins)
-	lines := strings.Split(content, "\n")
-	var currentSection string
-	var currentContent []string
-	var mindfulContent string
-	var foundMindful bool
-
-	for _, line := range lines {
-		// Check for markdown header
-		if strings.HasPrefix(line, "# ") {
-			// Save MINDFUL section if we found it and haven't saved one yet
-			if currentSection == "MINDFUL" && !foundMindful {
-				mindfulContent = strings.Join(currentContent, "\n")
-				foundMindful = true
-			}
-
-			// Start new section
-			currentSection = strings.TrimPrefix(line, "# ")
-			currentSection = strings.TrimSpace(currentSection)
-			currentContent = []string{}
-		} else if currentSection != "" {
-			// Add line to current section
-			currentContent = append(currentContent, line)
-		}
-	}
-
-	// Save final MINDFUL section if it was the last one and we haven't found one yet
-	if currentSection == "MINDFUL" && !foundMindful {
-		mindfulContent = strings.Join(currentContent, "\n")
-	}
-
-	m.MindfulMemory = strings.TrimSpace(mindfulContent)
-	return nil
-}
-
-// GetMindfulMemory returns the MINDFUL section content
-func (m *MemoryConfig) GetMindfulMemory() string {
-	return m.MindfulMemory
-}
 
 // Validate checks if the memory configuration is valid
 func (m *MemoryConfig) Validate() error {
@@ -192,8 +151,12 @@ func (s *SourceConfig) Clone() *SourceConfig {
 	// Clone memory config
 	if s.Memory != nil {
 		clone.Memory = &MemoryConfig{
-			Content:       s.Memory.Content,
-			MindfulMemory: s.Memory.MindfulMemory,
+			TeamContent:        s.Memory.TeamContent,
+			ProjectContent:     s.Memory.ProjectContent,
+			HasTeam:            s.Memory.HasTeam,
+			HasProject:         s.Memory.HasProject,
+			TeamSourcePath:     s.Memory.TeamSourcePath,
+			ProjectSourcePath:  s.Memory.ProjectSourcePath,
 		}
 	}
 

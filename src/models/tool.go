@@ -216,8 +216,12 @@ func (tc *ToolConfig) Clone() *ToolConfig {
 	// Clone memory config
 	if tc.Memory != nil {
 		clone.Memory = &MemoryConfig{
-			Content:       tc.Memory.Content,
-			MindfulMemory: tc.Memory.MindfulMemory,
+			TeamContent:        tc.Memory.TeamContent,
+			ProjectContent:     tc.Memory.ProjectContent,
+			HasTeam:            tc.Memory.HasTeam,
+			HasProject:         tc.Memory.HasProject,
+			TeamSourcePath:     tc.Memory.TeamSourcePath,
+			ProjectSourcePath:  tc.Memory.ProjectSourcePath,
 		}
 	}
 

@@ -95,7 +95,7 @@ func (ctx *AppContext) GetStorageManager() (*storage.Manager, error) {
 }
 
 // GetToolAdapter creates a tool adapter for the specified tool
-func (ctx *AppContext) GetToolAdapter(toolName string) (*tools.Adapter, error) {
+func (ctx *AppContext) GetToolAdapter(toolName string) (tools.ToolAdapter, error) {
 	return tools.NewAdapter(toolName)
 }
 

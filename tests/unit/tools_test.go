@@ -18,11 +18,13 @@ func TestCursorFileGeneration(t *testing.T) {
 			config: &tools.ToolConfig{
 				ToolName: "cursor",
 				Memory: &models.MemoryConfig{
-					MindfulMemory: "This is test memory content.",
+					TeamContent: "This is test memory content.",
+					HasTeam: true,
+					TeamSourcePath: "/test/source/memory.mdc",
 				},
 			},
 			expected: map[string]string{
-				".cursor/rules/general.mindful.mdc": "---\ndescription: General Memories\nglobs:\nalwaysApply: true\n---\n\nThis is test memory content.",
+				".cursor/rules/general.mindful.mdc": "---\ndescription: General Memories\nglobs:\nalwaysApply: true\n---\n\n# Mindful Memory (scope: team)\n<!-- Source: /test/source/memory.mdc -->\nThis is test memory content.",
 			},
 		},
 		{
@@ -60,7 +62,9 @@ func TestCursorFileGeneration(t *testing.T) {
 			config: &tools.ToolConfig{
 				ToolName: "cursor",
 				Memory: &models.MemoryConfig{
-					MindfulMemory: "General memory content.",
+					TeamContent: "General memory content.",
+					HasTeam: true,
+					TeamSourcePath: "/test/source/memory.mdc",
 				},
 				Subagents: []*models.SubagentConfig{
 					{
@@ -258,7 +262,9 @@ Content with leading/trailing whitespace.`,
 			config := &tools.ToolConfig{
 				ToolName: "cursor",
 				Memory: &models.MemoryConfig{
-					MindfulMemory: tt.content,
+					TeamContent: tt.content,
+					HasTeam: true,
+					TeamSourcePath: "/test/source/memory.mdc",
 				},
 			}
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"mindful/src/models"
 	"mindful/src/tools"
@@ -90,14 +89,8 @@ func (m *Manager) ApplyConfig(config *models.ApplyConfig) (*models.ApplyResult, 
 				}
 			}
 
-			// Write the file with appropriate content transformation
-			actualContent, err := m.getActualWriteContent(file, config.ToolName)
-			if err != nil {
-				result.SetError(fmt.Errorf("failed to generate write content for %s: %w", targetPath, err))
-				return result, err
-			}
-
-			if err := m.writeFile(targetPath, actualContent); err != nil {
+			// Write the file atomically (delete and recreate)
+			if err := m.writeFileAtomically(targetPath, file.Content); err != nil {
 				result.SetError(fmt.Errorf("failed to write file %s: %w", targetPath, err))
 				return result, err
 			}
@@ -247,87 +240,21 @@ func (m *Manager) generateDiff(existing, new string) string {
 		len(existing), len(new))
 }
 
-// getActualWriteContent gets the actual content to write to file
-// For some file types like CLAUDE.md, this involves merging with existing content
-func (m *Manager) getActualWriteContent(file tools.ConfigFile, toolName string) (string, error) {
-	switch toolName {
-	case "claude":
-		return m.getClaudeWriteContent(file)
-	case "cursor":
-		return m.getCursorWriteContent(file)
-	default:
-		return file.Content, nil
-	}
-}
-
-// getClaudeWriteContent gets write content for Claude tool
-func (m *Manager) getClaudeWriteContent(file tools.ConfigFile) (string, error) {
-	if file.Type == "memory" && file.Path == "CLAUDE.md" {
-		// For CLAUDE.md, we need to generate full content with MINDFUL section merged
-		return m.generateClaudeMemoryContent(file.Content)
-	}
-	return file.Content, nil
-}
-
-// getCursorWriteContent gets write content for Cursor tool
-func (m *Manager) getCursorWriteContent(file tools.ConfigFile) (string, error) {
-	// Cursor files are written as-is
-	return file.Content, nil
-}
-
-// generateClaudeMemoryContent generates full CLAUDE.md content with MINDFUL section
-func (m *Manager) generateClaudeMemoryContent(mindfulContent string) (string, error) {
-	// Try to read existing CLAUDE.md file
-	existingContent := ""
-	if data, err := os.ReadFile("CLAUDE.md"); err == nil {
-		existingContent = string(data)
+// writeFileAtomically writes content to a file atomically by deleting and recreating
+func (m *Manager) writeFileAtomically(path, content string) error {
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
-	// Parse existing content into sections
-	existingSections := make(map[string]string)
-	if existingContent != "" {
-		lines := strings.Split(existingContent, "\n")
-		var currentSection string
-		var currentContent []string
-
-		for _, line := range lines {
-			if strings.HasPrefix(line, "# ") {
-				// Save previous section
-				if currentSection != "" {
-					existingSections[currentSection] = strings.Join(currentContent, "\n")
-				}
-				// Start new section
-				currentSection = strings.TrimPrefix(line, "# ")
-				currentSection = strings.TrimSpace(currentSection)
-				currentContent = []string{}
-			} else if currentSection != "" {
-				currentContent = append(currentContent, line)
-			}
-		}
-		// Save final section
-		if currentSection != "" {
-			existingSections[currentSection] = strings.Join(currentContent, "\n")
+	// Delete existing file if it exists
+	if m.fileExists(path) {
+		if err := os.Remove(path); err != nil {
+			return fmt.Errorf("failed to delete existing file %s: %w", path, err)
 		}
 	}
 
-	// Upsert MINDFUL section
-	existingSections["MINDFUL"] = mindfulContent
-
-	// Reconstruct markdown with MINDFUL first, then other sections
-	var parts []string
-
-	// Add MINDFUL section first
-	if mindfulContent, exists := existingSections["MINDFUL"]; exists && strings.TrimSpace(mindfulContent) != "" {
-		parts = append(parts, fmt.Sprintf("# MINDFUL\n%s", strings.TrimSpace(mindfulContent)))
-		delete(existingSections, "MINDFUL") // Remove from remaining sections
-	}
-
-	// Add other sections
-	for sectionName, content := range existingSections {
-		if sectionName != "" && strings.TrimSpace(content) != "" {
-			parts = append(parts, fmt.Sprintf("# %s\n%s", sectionName, strings.TrimSpace(content)))
-		}
-	}
-
-	return strings.Join(parts, "\n\n"), nil
+	// Write the new content
+	return os.WriteFile(path, []byte(content), 0644)
 }

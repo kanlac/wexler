@@ -144,15 +144,35 @@ Focus on:
 		}
 	}
 
+	// Create project mindful directory and memory file
+	projectMindfulDir := filepath.Join(projectPath, "mindful")
+	if err := os.MkdirAll(projectMindfulDir, 0755); err != nil {
+		return fmt.Errorf("failed to create project mindful directory: %w", err)
+	}
+
+	// Create project memory.mdc file if it doesn't exist
+	projectMemoryPath := filepath.Join(projectMindfulDir, "memory.mdc")
+	if _, err := os.Stat(projectMemoryPath); os.IsNotExist(err) {
+		projectMemoryTemplate := `# Project Scoped Agent Memory
+
+empty`
+
+		if err := os.WriteFile(projectMemoryPath, []byte(projectMemoryTemplate), 0644); err != nil {
+			return fmt.Errorf("failed to create project memory file: %w", err)
+		}
+	}
+
 	fmt.Printf("✅ Mindful initialized successfully!\n\n")
 	fmt.Printf("Project: %s (v%s)\n", projectName, initVersion)
 	fmt.Printf("Source directory: %s\n", initSourcePath)
 	fmt.Printf("Actual source path: %s\n", sourcePath)
+	fmt.Printf("Project memory: %s\n", projectMemoryPath)
 	fmt.Printf("\n")
 	fmt.Printf("Next steps:\n")
-	fmt.Printf("  1. Edit %s/memory.mdc with your AI instructions\n", sourcePath)
-	fmt.Printf("  2. Add subagent files to %s/subagent/\n", sourcePath)
-	fmt.Printf("  3. Run 'mindful apply --tool=claude' to apply configurations\n")
+	fmt.Printf("  1. Edit %s/memory.mdc with team-wide AI instructions\n", sourcePath)
+	fmt.Printf("  2. Edit %s/memory.mdc with project-specific instructions\n", projectMindfulDir)
+	fmt.Printf("  3. Add subagent files to %s/subagent/\n", sourcePath)
+	fmt.Printf("  4. Run 'mindful apply --tool=claude' to apply configurations\n")
 
 	return nil
 }

@@ -70,13 +70,13 @@ func runApply(cmd *cobra.Command, args []string) error {
 	}
 
 	if verbose {
-		fmt.Printf("Loading source configurations from %s\n", sourcePath)
+		fmt.Printf("Loading dual-scope configurations from team: %s, project: %s\n", sourcePath, ctx.ProjectPath)
 	}
 
-	// Load source configuration
-	sourceConfig, err := ctx.SourceManager.LoadSource(sourcePath)
+	// Load dual-scope source configuration (team + project)
+	sourceConfig, err := ctx.SourceManager.LoadDualScopeSource(sourcePath, ctx.ProjectPath)
 	if err != nil {
-		return fmt.Errorf("failed to load source configuration: %w", err)
+		return fmt.Errorf("failed to load dual-scope source configuration: %w", err)
 	}
 
 	// Load MCP configuration from storage
