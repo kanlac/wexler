@@ -70,7 +70,8 @@ src/
 │   └── resolver.go        # 路径解析和验证
 └── cli/
     ├── init.go            # 初始化 (简化)
-    ├── apply.go           # 🔄 重写为软链接管理
+    ├── build.go           # 构建 mindful/out 产物
+    ├── apply.go           # 🔄 构建产物并分发软链接
     ├── list.go            # 列出配置 (简化)
     └── import.go          # 导入配置 (简化)
 ```
@@ -147,17 +148,42 @@ type SymlinkInfo struct {
 }
 ```
 
-## 🚀 新的 mindful apply 工作流程
+## 🚀 mindful CLI 工作流程
 
-### 极简化的执行逻辑
+### mindful build：生成 mindful/out
+- 单一职责：读取源配置、渲染 memory/subagents/mcp，并写入 `mindful/out`
+- 幂等设计：先清理旧产物，再写入全量结果，确保后续 `apply` 始终指向最新文件
+
+```go
+func runBuild(cmd *cobra.Command, args []string) error {
+    ctx := loadBuildContext(cmd, args)                   // 1. 加载构建上下文
+    sourceConfig := loadSourceConfiguration(ctx)         // 2. 读取团队/项目级配置
+
+    artifacts, err := renderArtifacts(ctx, sourceConfig) // 3. 渲染 memory/subagents/mcp
+    if err != nil {
+        return err
+    }
+
+    return writeArtifacts(ctx.OutPath, artifacts)        // 4. 写入 mindful/out
+}
+```
+
+### mindful apply：分发软链接
+- 自动构建：默认先执行一次 `mindful build`
+- 核心任务：将工具所需文件软链接到 `mindful/out` 中的对应产物
+- 输出优化：统一展示实际创建/更新的链接，以及校验结果
+
 ```go
 func runApply(cmd *cobra.Command, args []string) error {
-    // 🎯 4步极简流程
-    ctx := loadApplyContext(cmd, args)           // 1. 加载上下文
-    sourceConfig := loadSourceConfiguration(ctx)  // 2. 加载源配置
-    enabledTools := determineEnabledTools(ctx)   // 3. 确定目标工具
+    ctx := loadApplyContext(cmd, args)                    // 1. 加载软链接上下文
 
-    return executeSymlinkCreation(ctx, enabledTools) // 4. 创建软链接
+    if err := buildArtifactsIfNeeded(ctx); err != nil {   // 2. 构建或校验 mindful/out 产物
+        return err
+    }
+
+    enabledTools := determineEnabledTools(ctx)            // 3. 确定需要分发的目标工具
+
+    return executeSymlinkCreation(ctx, enabledTools)      // 4. 创建或更新软链接
 }
 
 func executeSymlinkCreation(ctx *ApplyContext, tools []string) error {
@@ -168,12 +194,12 @@ func executeSymlinkCreation(ctx *ApplyContext, tools []string) error {
         result := ToolResult{Tool: toolName}
 
         if ctx.DryRun {
-            // 干运行: 只显示将要创建的软链接
+            // 干运行: 仅规划指向 mindful/out 的软链接
             links, err := symlinkManager.PlanSymlinks(toolName)
             result.PlannedLinks = links
             result.Error = err
         } else {
-            // 实际执行: 创建软链接
+            // 实际执行: 创建或更新软链接，指向 mindful/out
             err := symlinkManager.CreateSymlinks(toolName)
             result.Error = err
         }
@@ -202,12 +228,16 @@ func executeSymlinkCreation(ctx *ApplyContext, tools []string) error {
 
 ### 阶段 2: CLI 命令重写 (1小时)
 
-#### 2.1 apply 命令重写
-- 重写 `runApply()` 为4步极简流程
-- 实现软链接创建的错误处理 (跳过失败继续)
-- 设计改进的用户输出格式
+#### 2.1 build 命令新增
+- 新增 `cli/build.go`，封装渲染与写入 mindful/out 的流程
+- 抽离产物渲染逻辑，保证幂等写入与目录清理
 
-#### 2.2 其他命令简化
+#### 2.2 apply 命令重写
+- 重写 `runApply()`，默认触发构建并分发指向 mindful/out 的软链接
+- 实现软链接创建的错误处理 (跳过失败继续)
+- 设计改进的用户输出格式，展示每个目标工具的链接状态
+
+#### 2.3 其他命令简化
 - 简化 `list` 命令显示软链接状态
 - 更新 `init` 命令生成软链接配置模板
 - 保持 `import` 命令基本不变
