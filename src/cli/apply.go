@@ -1,198 +1,130 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
-	"path/filepath"
+	"sort"
 	"strings"
 
 	"mindful/src/models"
+	"mindful/src/symlink"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	applyTool   string
-	applySource string
+	applyTools     string
+	applySkipBuild bool
+	applyDryRun    bool
 )
 
 func newApplyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply",
-		Short: "Apply configurations from source to AI tools",
-		Long: `Apply source configurations to the specified AI tool(s).
-
-Reads memory.mdc and subagent/*.mdc files from the source directory and generates
-appropriate configuration files for the target AI tool. Handles conflict detection
-and provides interactive resolution options.`,
-		Example: `  # Apply to Claude Code
-  mindful apply --tool=claude
-
-  # Apply to Cursor
-  mindful apply --tool=cursor
-
-  # Apply to all tools (dry run)
-  mindful apply --dry-run
-
-  # Apply with custom source directory
-  mindful apply --tool=claude --source=./custom-source`,
-		RunE: runApply,
+		Short: "Build artefacts and create symlinks for enabled tools",
+		RunE:  runApply,
 	}
 
-	cmd.Flags().StringVarP(&applyTool, "tool", "t", "", "target tool (claude, cursor, or 'all')")
-	cmd.Flags().StringVar(&applySource, "source", "", "source directory (default: from mindful.yaml)")
+	cmd.Flags().StringVarP(&applyTools, "tool", "t", "", "comma separated list of tools to target (defaults to enabled tools)")
+	cmd.Flags().BoolVar(&applySkipBuild, "skip-build", false, "skip automatic build before applying symlinks")
+	cmd.Flags().BoolVar(&applyDryRun, "dry-run", false, "plan symlink changes without modifying the filesystem")
 
 	return cmd
 }
 
 func runApply(cmd *cobra.Command, args []string) error {
-	ctx, err := NewAppContext()
+	ctx, err := NewProjectContext()
 	if err != nil {
 		return err
 	}
-	defer ctx.CloseResources()
+	defer ctx.Close()
 
-	// Load project configuration
-	projectConfig, err := ctx.ConfigManager.LoadProject(ctx.ProjectPath)
-	if err != nil {
-		return fmt.Errorf("failed to load project configuration: %w", err)
-	}
-
-	// Determine source path
-	sourcePath := applySource
-	if sourcePath == "" {
-		var err error
-		sourcePath, err = projectConfig.GetAbsoluteSourcePath()
-		if err != nil {
-			return fmt.Errorf("failed to resolve source path: %w", err)
+	if !applySkipBuild {
+		if _, err := executeBuild(ctx); err != nil {
+			return fmt.Errorf("build failed: %w", err)
 		}
-	} else {
-		sourcePath = filepath.Join(ctx.ProjectPath, sourcePath)
 	}
 
-	if verbose {
-		fmt.Printf("Loading dual-scope configurations from team: %s, project: %s\n", sourcePath, ctx.ProjectPath)
-	}
-
-	// Load dual-scope source configuration (team + project)
-	sourceConfig, err := ctx.SourceManager.LoadDualScopeSource(sourcePath, ctx.ProjectPath)
+	tools, err := resolveTargetTools(ctx.ProjectConfig, applyTools)
 	if err != nil {
-		return fmt.Errorf("failed to load dual-scope source configuration: %w", err)
+		return err
 	}
 
-	// Load MCP configuration from storage
-	storageManager, err := ctx.GetStorageManager()
+	manager, err := symlink.NewManager(ctx.ProjectPath, nil)
 	if err != nil {
-		return fmt.Errorf("failed to initialize storage: %w", err)
+		return err
 	}
 
-	mcpConfigs, err := storageManager.ListMCP()
-	if err != nil {
-		return fmt.Errorf("failed to load MCP configurations: %w", err)
+	var toolErrs []error
+	for _, tool := range tools {
+		if applyDryRun {
+			if err := reportPlannedSymlinks(cmd, manager, tool); err != nil {
+				toolErrs = append(toolErrs, err)
+			}
+			continue
+		}
+
+		if err := manager.CreateSymlinks(tool); err != nil {
+			toolErrs = append(toolErrs, fmt.Errorf("%s: %w", tool, err))
+			fmt.Fprintf(cmd.ErrOrStderr(), "✗ %s: %v\n", tool, err)
+			continue
+		}
+
+		fmt.Fprintf(cmd.OutOrStdout(), "✓ %s symlinks updated\n", tool)
 	}
 
-	mcpConfig := models.NewMCPConfig()
-	for serverName, config := range mcpConfigs {
-		mcpConfig.Servers[serverName] = config
-	}
+	return errors.Join(toolErrs...)
+}
 
-	// Determine target tools
+func resolveTargetTools(cfg *models.ProjectConfig, selection string) ([]string, error) {
 	var tools []string
-	if applyTool == "" || applyTool == "all" {
-		// Apply to all enabled tools
-		for toolName, status := range projectConfig.Tools {
-			if status == "enabled" {
-				tools = append(tools, toolName)
+	if strings.TrimSpace(selection) != "" {
+		for _, part := range strings.Split(selection, ",") {
+			name := strings.TrimSpace(part)
+			if name != "" {
+				tools = append(tools, name)
 			}
 		}
 	} else {
-		tools = strings.Split(applyTool, ",")
+		tools = cfg.GetEnabledTools()
 	}
 
 	if len(tools) == 0 {
-		return fmt.Errorf("no tools specified or enabled")
+		return nil, fmt.Errorf("no tools specified or enabled in mindful.yaml")
 	}
 
-	// Apply to each tool
-	for _, toolName := range tools {
-		toolName = strings.TrimSpace(toolName)
-
-		if verbose {
-			fmt.Printf("Applying configuration to %s...\n", toolName)
-		}
-
-		// Create apply configuration
-		applyConfig := &models.ApplyConfig{
-			ProjectPath: ctx.ProjectPath,
-			ToolName:    toolName,
-			Source:      sourceConfig,
-			MCP:         mcpConfig,
-			DryRun:      dryRun,
-			Force:       force,
-		}
-
-		// Check for conflicts first (unless force is enabled)
-		if !force {
-			conflicts, err := ctx.ApplyManager.DetectConflicts(applyConfig)
-			if err != nil {
-				return fmt.Errorf("failed to detect conflicts for %s: %w", toolName, err)
-			}
-
-			if len(conflicts) > 0 && !dryRun {
-				// Progressive conflict handling - prompt user for resolution
-				resolution, err := promptUser(conflicts, toolName)
-				if err != nil {
-					fmt.Printf("⚠️  Failed to get user input: %v\n", err)
-					fmt.Printf("⚠️  Defaulting to Stop for safety\n")
-					resolution = models.Stop
-				}
-
-				switch resolution {
-				case models.Stop:
-					fmt.Printf("⚠️  Operation stopped by user for %s. No changes were made.\n", toolName)
-					continue // Continue to next tool instead of returning error
-				case models.Continue:
-					fmt.Printf("✓ Continuing with conflict resolution for %s...\n", toolName)
-					applyConfig.Force = true // Force this specific application
-				case models.ContinueAll:
-					fmt.Printf("✓ Continuing with all conflicts for %s...\n", toolName)
-					applyConfig.Force = true // Force this specific application
-					force = true             // Set global force for remaining tools
-				}
-			} else if len(conflicts) > 0 && dryRun {
-				// In dry run mode, just show conflicts as warnings
-				fmt.Printf("⚠️  Found %d conflict(s) for %s (dry run mode):\n", len(conflicts), toolName)
-				for _, conflict := range conflicts {
-					fmt.Printf("  - %s (%s)\n", conflict.FilePath, conflict.FileType)
-				}
-			}
-		}
-
-		// Apply the configuration
-		result, err := ctx.ApplyManager.ApplyConfig(applyConfig)
-		if err != nil {
-			return fmt.Errorf("failed to apply configuration to %s: %w", toolName, err)
-		}
-
-		// Display results
-		if result.Success {
-			fmt.Printf("✅ Successfully applied configuration to %s\n", toolName)
-			if verbose {
-				fmt.Printf("   Files written: %d\n", len(result.FilesWritten))
-				fmt.Printf("   Files skipped: %d\n", len(result.FilesSkipped))
-				if len(result.FilesWritten) > 0 {
-					fmt.Printf("   Written files:\n")
-					for _, file := range result.FilesWritten {
-						fmt.Printf("     - %s\n", file)
-					}
-				}
-			}
-		} else {
-			fmt.Printf("❌ Failed to apply configuration to %s: %s\n", toolName, result.Error)
-		}
+	unique := make(map[string]struct{})
+	for _, tool := range tools {
+		unique[tool] = struct{}{}
 	}
 
-	if dryRun {
-		fmt.Printf("\n🔍 Dry run completed - no files were modified\n")
+	final := make([]string, 0, len(unique))
+	for tool := range unique {
+		final = append(final, tool)
+	}
+	sort.Strings(final)
+
+	return final, nil
+}
+
+func reportPlannedSymlinks(cmd *cobra.Command, manager *symlink.Manager, tool string) error {
+	infos, err := manager.PlanSymlinks(tool)
+	if err != nil {
+		return fmt.Errorf("dry-run failed for %s: %w", tool, err)
+	}
+
+	fmt.Fprintf(cmd.OutOrStdout(), "%s:\n", tool)
+	if len(infos) == 0 {
+		fmt.Fprintln(cmd.OutOrStdout(), "  (no symlinks configured)")
+		return nil
+	}
+
+	for _, info := range infos {
+		status := "create"
+		if info.IsValid {
+			status = "ok"
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "  %-7s %s -> %s\n", status, info.LinkPath, info.TargetPath)
 	}
 
 	return nil

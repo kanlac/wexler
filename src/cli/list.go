@@ -2,164 +2,102 @@ package cli
 
 import (
 	"fmt"
-	"os"
+	"sort"
 	"strings"
-	"text/tabwriter"
+
+	"mindful/src/models"
+	"mindful/src/symlink"
 
 	"github.com/spf13/cobra"
 )
 
-var (
-	listFormat string
-	listMCP    bool
-	listTools  bool
-)
+var listTool string
 
 func newListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List all managed configurations",
-		Long: `List all configurations managed by Mindful.
-
-Shows project configuration, source files, MCP server configurations,
-and tool status in various output formats.`,
-		Example: `  # List all configurations
-  mindful list
-
-  # List only MCP configurations
-  mindful list --mcp
-
-  # List only tool configurations
-  mindful list --tools
-
-  # Output in JSON format
-  mindful list --format=json`,
-		RunE: runList,
+		Short: "Show the current state of managed symlinks",
+		RunE:  runList,
 	}
-
-	cmd.Flags().StringVar(&listFormat, "format", "table", "output format (table, json, yaml)")
-	cmd.Flags().BoolVar(&listMCP, "mcp", false, "list only MCP configurations")
-	cmd.Flags().BoolVar(&listTools, "tools", false, "list only tool configurations")
-
+	cmd.Flags().StringVarP(&listTool, "tool", "t", "", "show symlinks for a specific tool")
 	return cmd
 }
 
 func runList(cmd *cobra.Command, args []string) error {
-	ctx, err := NewAppContext()
+	ctx, err := NewProjectContext()
 	if err != nil {
 		return err
 	}
-	defer ctx.CloseResources()
+	defer ctx.Close()
 
-	// Load project configuration
-	projectConfig, err := ctx.ConfigManager.LoadProject(ctx.ProjectPath)
+	manager, err := symlink.NewManager(ctx.ProjectPath, nil)
 	if err != nil {
-		return fmt.Errorf("failed to load project configuration: %w", err)
+		return err
 	}
 
-	// Initialize tabwriter for table format
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-
-	// Show project information (unless filtering)
-	if !listMCP && !listTools {
-		fmt.Fprintf(w, "PROJECT CONFIGURATION\n")
-		fmt.Fprintf(w, "Name:\t%s\n", projectConfig.Name)
-		fmt.Fprintf(w, "Version:\t%s\n", projectConfig.Version)
-		fmt.Fprintf(w, "Source:\t%s\n", projectConfig.SourcePath)
-		fmt.Fprintf(w, "\n")
+	tools := collectListTools(ctx, listTool)
+	if len(tools) == 0 {
+		fmt.Fprintln(cmd.OutOrStdout(), "no symlink mappings available")
+		return nil
 	}
 
-	// Show source files (unless filtering for MCP/tools only)
-	if !listMCP && !listTools {
-		sourcePath, err := projectConfig.GetAbsoluteSourcePath()
+	for _, tool := range tools {
+		infos, err := manager.ListSymlinks(tool)
 		if err != nil {
-			fmt.Printf("⚠️  Failed to resolve source path: %v\n", err)
-		} else {
-			sourceFiles, err := ctx.SourceManager.ListSourceFiles(sourcePath)
-			if err != nil {
-				fmt.Printf("⚠️  Failed to list source files: %v\n", err)
-			} else {
-				fmt.Fprintf(w, "SOURCE FILES\n")
-				if len(sourceFiles) == 0 {
-					fmt.Fprintf(w, "(none)\n")
-				} else {
-					for _, file := range sourceFiles {
-						// Make path relative to source path
-						relPath := strings.TrimPrefix(file, sourcePath)
-						relPath = strings.TrimPrefix(relPath, "/")
-						fmt.Fprintf(w, "%s\n", relPath)
-					}
-				}
-				fmt.Fprintf(w, "\n")
-			}
-		}
-	}
-
-	// Show MCP configurations
-	if !listTools {
-		storageManager, err := ctx.GetStorageManager()
-		if err != nil {
-			fmt.Printf("⚠️  Failed to initialize storage: %v\n", err)
-		} else {
-			mcpConfigs, err := storageManager.ListMCP()
-			if err != nil {
-				fmt.Printf("⚠️  Failed to list MCP configurations: %v\n", err)
-			} else {
-				fmt.Fprintf(w, "MCP SERVERS\n")
-				if len(mcpConfigs) == 0 {
-					fmt.Fprintf(w, "(none)\n")
-				} else {
-					fmt.Fprintf(w, "Name\tStatus\n")
-					fmt.Fprintf(w, "----\t------\n")
-					for serverName := range mcpConfigs {
-						fmt.Fprintf(w, "%s\tstored\n", serverName)
-					}
-				}
-				fmt.Fprintf(w, "\n")
-			}
-		}
-	}
-
-	// Show tool configurations
-	if !listMCP {
-		fmt.Fprintf(w, "AI TOOLS\n")
-		fmt.Fprintf(w, "Tool\tStatus\tConfiguration\n")
-		fmt.Fprintf(w, "----\t------\t-------------\n")
-		for toolName, status := range projectConfig.Tools {
-			configStatus := "not applied"
-
-			// Check if tool has been configured
-			switch toolName {
-			case "claude":
-				if _, err := os.Stat("CLAUDE.md"); err == nil {
-					configStatus = "configured"
-				}
-			case "cursor":
-				if _, err := os.Stat(".cursor/rules"); err == nil {
-					configStatus = "configured"
-				}
-			}
-
-			fmt.Fprintf(w, "%s\t%s\t%s\n", toolName, status, configStatus)
-		}
-		fmt.Fprintf(w, "\n")
-	}
-
-	// Flush tabwriter
-	w.Flush()
-
-	// Show summary (unless filtering)
-	if !listMCP && !listTools {
-		enabledTools := 0
-		for _, status := range projectConfig.Tools {
-			if status == "enabled" {
-				enabledTools++
-			}
+			fmt.Fprintf(cmd.OutOrStderr(), "%s: %v\n", tool, err)
+			continue
 		}
 
-		fmt.Printf("Summary: %d enabled tool(s), project '%s' v%s\n",
-			enabledTools, projectConfig.Name, projectConfig.Version)
+		fmt.Fprintf(cmd.OutOrStdout(), "%s:\n", tool)
+		if len(infos) == 0 {
+			fmt.Fprintln(cmd.OutOrStdout(), "  (no symlinks configured)")
+			continue
+		}
+
+		for _, info := range infos {
+			status := renderSymlinkStatus(info)
+			fmt.Fprintf(cmd.OutOrStdout(), "  %-8s %s -> %s\n", status, info.LinkPath, info.TargetPath)
+		}
 	}
 
 	return nil
+}
+
+func collectListTools(ctx *ProjectContext, selected string) []string {
+	cfg, err := symlink.DefaultConfig()
+	if err != nil {
+		tools := ctx.ProjectConfig.GetEnabledTools()
+		sort.Strings(tools)
+		return tools
+	}
+	names := cfg.ToolNames()
+
+	if strings.TrimSpace(selected) != "" {
+		filter := strings.TrimSpace(selected)
+		if len(names) == 0 {
+			return []string{filter}
+		}
+		for _, name := range names {
+			if name == filter {
+				return []string{filter}
+			}
+		}
+		return []string{filter}
+	}
+
+	if len(names) == 0 {
+		tools := ctx.ProjectConfig.GetEnabledTools()
+		sort.Strings(tools)
+		return tools
+	}
+
+	sort.Strings(names)
+	return names
+}
+
+func renderSymlinkStatus(info models.SymlinkInfo) string {
+	if info.IsValid {
+		return "ok"
+	}
+	return "missing"
 }

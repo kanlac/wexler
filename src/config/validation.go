@@ -16,7 +16,7 @@ func ValidateProjectStructure(projectPath string, config *models.ProjectConfig) 
 	}
 
 	// Validate source path exists or can be created
-	sourcePath, err := config.GetAbsoluteSourcePath()
+	sourcePath, err := config.ResolveSourceRoot(projectPath)
 	if err != nil {
 		return fmt.Errorf("invalid source path: %w", err)
 	}
@@ -33,24 +33,25 @@ func ValidateToolConfiguration(config *models.ProjectConfig) error {
 		return fmt.Errorf("config cannot be nil")
 	}
 
-	supportedTools := map[string]bool{
-		"claude": true,
-		"cursor": true,
-	}
-
+	// Validate legacy tools map if present.
 	for toolName, status := range config.Tools {
-		// Validate tool name
-		if !supportedTools[toolName] {
-			return fmt.Errorf("unsupported tool: %s", toolName)
+		if strings.TrimSpace(toolName) == "" {
+			return fmt.Errorf("tool name cannot be empty")
 		}
 
-		// Validate tool status
 		validStatuses := map[string]bool{
 			"enabled":  true,
 			"disabled": true,
 		}
 		if !validStatuses[status] {
 			return fmt.Errorf("invalid status '%s' for tool '%s', must be 'enabled' or 'disabled'", status, toolName)
+		}
+	}
+
+	// Validate modern enable-coding-agents list.
+	for _, tool := range config.EnableCodingAgents {
+		if strings.TrimSpace(tool) == "" {
+			return fmt.Errorf("enable-coding-agents cannot contain empty tool names")
 		}
 	}
 

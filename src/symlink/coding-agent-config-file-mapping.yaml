@@ -1,0 +1,10 @@
+claude:
+  memory: "CLAUDE.md"
+  subagents: ".claude/agents/{name}.mindful.md"
+  mcp: ".mcp.json"
+cursor:
+  memory: ".cursor/rules/general.mindful.mdc"
+  subagents: ".cursor/rules/{name}.mindful.mdc"
+  mcp: ".cursor/mcp.json"
+codex:
+  memory: "AGENTS.md"

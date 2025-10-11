@@ -11,168 +11,63 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	initSourcePath string
-	initName       string
-	initVersion    string
-)
+var initForce bool
 
 func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "init [PROJECT_NAME]",
-		Short: "Initialize Mindful in project directory",
-		Long: `Initialize Mindful configuration management in the current directory.
-
-Creates a mindful.yaml configuration file and sets up the basic project structure
-including source directory for AI configurations and MCP settings.`,
-		Example: `  # Initialize with default settings
-  mindful init
-
-  # Initialize with custom project name
-  mindful init my-project
-
-  # Initialize with custom source directory
-  mindful init --source=/usr/ai-configs`,
-		Args: cobra.MaximumNArgs(1),
-		RunE: runInit,
+		Use:   "init",
+		Short: "Initialise a Mindful project in the current directory",
+		RunE:  runInit,
 	}
 
-	cmd.Flags().StringVar(&initSourcePath, "source", models.DefaultMindfulSource, "source directory for AI configurations")
-	cmd.Flags().StringVar(&initName, "name", "", "project name (default: directory name)")
-	cmd.Flags().StringVar(&initVersion, "version", "1.0.0", "project version")
+	cmd.Flags().BoolVar(&initForce, "force", false, "overwrite existing mindful.yaml if present")
 
 	return cmd
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
-	// For init command, we don't use NewAppContext since it requires existing mindful.yaml
 	projectPath, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
+		return fmt.Errorf("failed to determine working directory: %w", err)
 	}
 
-	configManager := config.NewManager()
+	mindfulDir := filepath.Join(projectPath, models.DefaultMindfulDirName)
+	configPath := filepath.Join(mindfulDir, "mindful.yaml")
 
-	// Determine project name
-	projectName := initName
-	if len(args) > 0 {
-		projectName = args[0]
-	}
-	if projectName == "" {
-		projectName = filepath.Base(projectPath)
+	if _, err := os.Stat(configPath); err == nil && !initForce {
+		return fmt.Errorf("mindful.yaml already exists; re-run with --force to overwrite")
 	}
 
-	if verbose {
-		fmt.Printf("Initializing Mindful project '%s' in %s\n", projectName, projectPath)
+	if err := os.MkdirAll(mindfulDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create mindful directory: %w", err)
 	}
 
-	// Check if already initialized
-	configPath := filepath.Join(projectPath, "mindful.yaml")
-	if _, err := os.Stat(configPath); err == nil && !force {
-		return fmt.Errorf("mindful.yaml already exists (use --force to overwrite)")
+	projectName := filepath.Base(projectPath)
+	projectConfig := &models.ProjectConfig{
+		Name:               projectName,
+		Version:            "1.0.0",
+		Source:             "~/.mindful",
+		EnableCodingAgents: []string{"claude", "cursor", "codex"},
 	}
 
-	// Create project configuration
-	config := &models.ProjectConfig{
-		Name:       projectName,
-		Version:    initVersion,
-		SourcePath: initSourcePath,
-		Tools: map[string]string{
-			"claude": "enabled",
-			"cursor": "enabled",
-		},
+	manager := config.NewManager()
+	if err := manager.SaveProject(projectPath, projectConfig); err != nil {
+		return fmt.Errorf("failed to write mindful.yaml: %w", err)
 	}
 
-	// Validate configuration
-	if err := config.Validate(); err != nil {
-		return fmt.Errorf("invalid configuration: %w", err)
-	}
-
-	// Save project configuration
-	if err := configManager.SaveProject(config); err != nil {
-		return fmt.Errorf("failed to save project configuration: %w", err)
-	}
-
-	// Create global mindful source directory structure
-	sourcePath, err := config.GetAbsoluteSourcePath()
-	if err != nil {
-		return fmt.Errorf("failed to resolve source path: %w", err)
-	}
-
-	if err := os.MkdirAll(sourcePath, 0755); err != nil {
-		return fmt.Errorf("failed to create source directory: %w", err)
-	}
-
-	// Create subagent directory
-	subagentPath := filepath.Join(sourcePath, "subagent")
-	if err := os.MkdirAll(subagentPath, 0755); err != nil {
-		return fmt.Errorf("failed to create subagent directory: %w", err)
-	}
-
-	// Create sample memory.mdc file
-	memoryPath := filepath.Join(sourcePath, "memory.mdc")
-	if _, err := os.Stat(memoryPath); os.IsNotExist(err) {
-		sampleMemory := `# MINDFUL
-<--- Long-term memory of all coding agents. Managed by Mindful. DO NOT EDIT outside of mindful source directory. --->
-
-## Workflow
-Prefer running single tests for performance.
-
-## Code Style
-Use Go conventions and direct framework usage.
-
-## Project Context
-This is the project context and instructions for AI assistants.`
-
-		if err := os.WriteFile(memoryPath, []byte(sampleMemory), 0644); err != nil {
-			return fmt.Errorf("failed to create sample memory file: %w", err)
+	projectMemoryPath := filepath.Join(mindfulDir, "project-memory.mdc")
+	if _, err := os.Stat(projectMemoryPath); os.IsNotExist(err) || initForce {
+		memoryTemplate := "# Project Memory\n\nDescribe your project-specific context here.\n"
+		if err := os.WriteFile(projectMemoryPath, []byte(memoryTemplate), 0o644); err != nil {
+			return fmt.Errorf("failed to create %s: %w", projectMemoryPath, err)
 		}
 	}
 
-	// Create sample subagent file
-	plannerPath := filepath.Join(subagentPath, "planner.mdc")
-	if _, err := os.Stat(plannerPath); os.IsNotExist(err) {
-		samplePlanner := `Use this agent when the user asks for planning or task breakdown.
-
-Focus on:
-- Breaking down complex tasks into manageable steps
-- Identifying dependencies and requirements
-- Creating clear, actionable plans`
-
-		if err := os.WriteFile(plannerPath, []byte(samplePlanner), 0644); err != nil {
-			return fmt.Errorf("failed to create sample planner file: %w", err)
-		}
+	projectSubagentDir := filepath.Join(mindfulDir, "project-subagents")
+	if err := os.MkdirAll(projectSubagentDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create %s: %w", projectSubagentDir, err)
 	}
 
-	// Create project mindful directory and memory file
-	projectMindfulDir := filepath.Join(projectPath, "mindful")
-	if err := os.MkdirAll(projectMindfulDir, 0755); err != nil {
-		return fmt.Errorf("failed to create project mindful directory: %w", err)
-	}
-
-	// Create project memory.mdc file if it doesn't exist
-	projectMemoryPath := filepath.Join(projectMindfulDir, "memory.mdc")
-	if _, err := os.Stat(projectMemoryPath); os.IsNotExist(err) {
-		projectMemoryTemplate := `# Project Scoped Agent Memory
-
-empty`
-
-		if err := os.WriteFile(projectMemoryPath, []byte(projectMemoryTemplate), 0644); err != nil {
-			return fmt.Errorf("failed to create project memory file: %w", err)
-		}
-	}
-
-	fmt.Printf("✅ Mindful initialized successfully!\n\n")
-	fmt.Printf("Project: %s (v%s)\n", projectName, initVersion)
-	fmt.Printf("Source directory: %s\n", initSourcePath)
-	fmt.Printf("Actual source path: %s\n", sourcePath)
-	fmt.Printf("Project memory: %s\n", projectMemoryPath)
-	fmt.Printf("\n")
-	fmt.Printf("Next steps:\n")
-	fmt.Printf("  1. Edit %s/memory.mdc with team-wide AI instructions\n", sourcePath)
-	fmt.Printf("  2. Edit %s/memory.mdc with project-specific instructions\n", projectMindfulDir)
-	fmt.Printf("  3. Add subagent files to %s/subagent/\n", sourcePath)
-	fmt.Printf("  4. Run 'mindful apply --tool=claude' to apply configurations\n")
-
+	fmt.Fprintf(cmd.OutOrStdout(), "Mindful project initialised in %s\n", mindfulDir)
 	return nil
 }
