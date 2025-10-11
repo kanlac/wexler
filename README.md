@@ -99,7 +99,7 @@ mindful list --mcp
 make install
 ```
 
-## 存储架构
+## 目录结构
 
 ### Mindful 源目录
 
@@ -114,7 +114,7 @@ $MINDFUL_DIR/                    # 团队共享的配置源
 
 ```
 
-### 项目目录（apply 后）
+### 用户项目目录（apply 后）
 
 ```
 project/
@@ -129,6 +129,9 @@ project/
 └── .mcp.json                   # MCP 配置
 
 ```
+
+### 项目结构
+本仓库目录，省略。
 
 ## 配置文件映射
 

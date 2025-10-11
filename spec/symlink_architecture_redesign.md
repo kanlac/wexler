@@ -21,42 +21,31 @@
 | **维护成本** | 每个工具需要独立适配器 | 配置映射表维护 |
 | **扩展性** | 新工具需要编程实现 | 新工具只需配置映射 |
 
-## 📁 全新的项目文件结构
+## 📁 全新的用户端项目文件结构
 
-### 数据源结构 (单一事实源)
 ```
-项目根目录/
-├── mindful.yaml              # 项目配置 + 软链接映射
-├── MINDFUL.md               # 统一长期记忆文件
-├── subagents/               # 子代理配置目录
-│   ├── researcher.md
-│   ├── reviewer.md
-│   └── planner.md
-├── .mcp.json               # MCP配置文件
-└── mindful/                # 项目级配置 (如果存在)
-    ├── memory.mdc          # 项目特定记忆
-    └── subagents/          # 项目特定子代理
-```
-
-### 工具软链接结构 (引用层)
-```
-项目根目录/
-├── CLAUDE.md               -> MINDFUL.md
-├── AGENTS.md               -> MINDFUL.md
+用户项目根目录/
+├── mindful/
+│   ├── mindful.yaml
+│   ├── project-memory.mdc (可选，手动维护项目级配置)
+│   ├── project-subagents/ (可选，团队共享子代理)
+│   └── out/ (mindful 生成的最终配置，覆盖 project-scope 与 team-scope)
+│       ├── memory.md
+│       ├── subagents/
+│       └── mcp.json
+├── CLAUDE.md -> mindful/out/memory.md
+├── AGENTS.md -> mindful/out/memory.md (Codex, Gemini CLI)
+├── .mcp.json -> mindful/out/mcp.json (Claude Code MCP 配置)
 ├── .cursor/
 │   ├── rules/
-│   │   ├── general.mindful.mdc -> ../../MINDFUL.md
-│   │   ├── researcher.mindful.mdc -> ../../subagents/researcher.md
-│   │   └── reviewer.mindful.mdc -> ../../subagents/reviewer.md
-│   └── mcp.json           -> ../.mcp.json
-├── .claude/
-│   ├── agents/
-│   │   ├── researcher.mindful.md -> ../../subagents/researcher.md
-│   │   └── reviewer.mindful.md -> ../../subagents/reviewer.md
-│   └── .mcp.json         -> ../.mcp.json
-└── .gemini/
-    ├── context.md         -> MINDFUL.md
-    └── agents/            -> subagents/ (目录软链接)
+│   │   ├── general.mindful.mdc -> ../../mindful/out/memory.md
+│   │   ├── researcher.mindful.mdc -> ../../mindful/out/subagents/researcher.mdc
+│   │   └── reviewer.mindful.mdc -> ../../mindful/out/subagents/reviewer.mdc
+│   └── mcp.json -> ../mindful/out/mcp.json
+└── .claude/
+    └── agents/
+        ├── researcher.mindful.md -> ../../mindful/out/subagents/researcher.md
+        └── reviewer.mindful.md -> ../../mindful/out/subagents/reviewer.md
 ```
 
 ## 🏗️ 极简化的代码架构
@@ -111,33 +100,27 @@ version: "1.0.0"
 source: "/path/to/team-configs"
 
 # 工具启用配置
-tools:
-  claude: "enabled"
-  cursor: "enabled"
-  gemini: "enabled"
+enable-coding-agents:
+  - claude
+  - cursor
+  - codex
 
 # 🆕 软链接映射配置
 symlinks:
   claude:
-    memory: "CLAUDE.md"                    # -> MINDFUL.md
-    subagents: ".claude/agents/{name}.mindful.md"  # -> subagents/{name}.md
-    mcp: ".claude/.mcp.json"               # -> .mcp.json
+    memory: "CLAUDE.md"
+    subagents: ".claude/agents/{name}.mindful.md"
+    mcp: ".mcp.json"
 
   cursor:
-    memory: ".cursor/rules/general.mindful.mdc"    # -> MINDFUL.md
-    subagents: ".cursor/rules/{name}.mindful.mdc"  # -> subagents/{name}.md
-    mcp: ".cursor/mcp.json"                        # -> .mcp.json
+    memory: ".cursor/rules/general.mindful.mdc"
+    subagents: ".cursor/rules/{name}.mindful.mdc"
+    mcp: ".cursor/mcp.json"
 
-  gemini:
-    memory: ".gemini/context.md"           # -> MINDFUL.md
-    subagents: ".gemini/agents/"           # -> subagents/ (目录链接)
-    mcp: ".gemini/.mcp.json"               # -> .mcp.json
-
-  # 🆕 自定义工具支持
-  custom_tool:
-    memory: "custom/path/MEMORY.md"        # -> MINDFUL.md
-    subagents: "custom/agents/{name}.md"   # -> subagents/{name}.md
-    mcp: "custom/.mcp.json"                # -> .mcp.json
+  codex:
+    memory: "AGENTS.md"
+    subagents: ""   # Codex 暂不支持 subagent
+    mcp: ""         # Codex 通过 ~/.codex/config.toml 文件管理 MCP，不支持直接加载项目目录中的 mcp json 文件
 ```
 
 ### 软链接管理器接口设计
